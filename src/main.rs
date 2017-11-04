@@ -1,4 +1,5 @@
-#![cfg_attr(test, deny(warnings))]
+#![allow(dead_code)]
+
 #![cfg_attr(test, allow(dead_code))]
 
 mod z80;
