@@ -41,6 +41,23 @@ impl Z80 {
   pub fn hl(&self) -> u16 {
     ((self.h as u16) << 8) | (self.l as u16)
   }
+
+  pub fn z(&self) -> bool {
+    //! Zero flag
+    ((self.f >> 7) & 1) == 1
+  }
+  pub fn h(&self) -> bool {
+    //! Subtract flag
+    ((self.f >> 6) & 1) == 1
+  }
+  pub fn n(&self) -> bool {
+    //! Half carry flag
+    ((self.f >> 5) & 1) == 1
+  }
+  pub fn c(&self) -> bool {
+    //! Carry flag
+    ((self.f >> 4) & 1) == 1
+  }
 }
 
 #[cfg(test)]
@@ -54,5 +71,11 @@ mod tests {
     assert_eq!(cpu.bc(), 0x0013);
     assert_eq!(cpu.de(), 0x00d8);
     assert_eq!(cpu.hl(), 0x014d);
+    assert_eq!(cpu.pc, 0x100);
+    assert_eq!(cpu.sp, 0xfffe);
+    assert!(cpu.z());
+    assert!(!cpu.h());
+    assert!(cpu.n());
+    assert!(cpu.c());
   }
 }
