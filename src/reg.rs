@@ -1,3 +1,8 @@
+const Z: u8 = 0x80;
+const H: u8 = 0x40;
+const N: u8 = 0x20;
+const C: u8 = 0x10;
+
 #[derive(Debug, Eq, PartialEq)]
 pub struct Registers {
   /// General-purpose registers.
@@ -56,19 +61,19 @@ impl Registers {
 
   pub fn z(&self) -> bool {
     //! Zero flag
-    ((self.f >> 7) & 1) == 1
+    self.f & Z != 0
   }
   pub fn h(&self) -> bool {
     //! Subtract flag
-    ((self.f >> 6) & 1) == 1
+    self.f & H != 0
   }
   pub fn n(&self) -> bool {
     //! Half carry flag
-    ((self.f >> 5) & 1) == 1
+    self.f & N != 0
   }
   pub fn c(&self) -> bool {
     //! Carry flag
-    ((self.f >> 4) & 1) == 1
+    self.f & C != 0
   }
 }
 
