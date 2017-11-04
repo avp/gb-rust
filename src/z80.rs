@@ -1,21 +1,31 @@
-pub struct Z80 {
-  pc: u16,
-  sp: u16,
+use mem::Memory;
 
+#[derive(Debug, Eq, PartialEq)]
+pub struct Registers {
+  /// General-purpose registers.
   a: u8,
   b: u8,
   c: u8,
   d: u8,
   e: u8,
-  f: u8,
+  f: u8, // Flag register.
   h: u8,
   l: u8,
+
+  /// Program counter.
+  pc: u16,
+
+  /// Stack pointer.
+  sp: u16,
+
+  /// Last Clock.
+  m: u32,
+  t: u32,
 }
 
-
-impl Z80 {
-  pub fn new() -> Z80 {
-    Z80 {
+impl Registers {
+  pub fn new() -> Registers {
+    Registers {
       a: 0x01,
       f: 0xb0,
       b: 0x00,
@@ -24,8 +34,12 @@ impl Z80 {
       e: 0xd8,
       h: 0x01,
       l: 0x4d,
+
       sp: 0xfffe,
       pc: 0x100,
+
+      m: 0,
+      t: 0,
     }
   }
 
@@ -60,6 +74,28 @@ impl Z80 {
   }
 }
 
+#[derive(Debug)]
+pub struct Z80 {
+  pub regs: Registers,
+  pub mem: Memory,
+
+  /// Current clock.
+  m: u32,
+  t: u32,
+}
+
+
+impl Z80 {
+  pub fn new() -> Z80 {
+    Z80 {
+      regs: Registers::new(),
+      mem: Memory::new(),
+      m: 0,
+      t: 0,
+    }
+  }
+}
+
 #[cfg(test)]
 mod tests {
   use super::Z80;
@@ -67,15 +103,20 @@ mod tests {
   #[test]
   fn combine_regs() {
     let cpu = Z80::new();
-    assert_eq!(cpu.af(), 0x01b0);
-    assert_eq!(cpu.bc(), 0x0013);
-    assert_eq!(cpu.de(), 0x00d8);
-    assert_eq!(cpu.hl(), 0x014d);
-    assert_eq!(cpu.pc, 0x100);
-    assert_eq!(cpu.sp, 0xfffe);
-    assert!(cpu.z());
-    assert!(!cpu.h());
-    assert!(cpu.n());
-    assert!(cpu.c());
+    assert_eq!(cpu.regs.af(), 0x01b0);
+    assert_eq!(cpu.regs.bc(), 0x0013);
+    assert_eq!(cpu.regs.de(), 0x00d8);
+    assert_eq!(cpu.regs.hl(), 0x014d);
+    assert_eq!(cpu.regs.pc, 0x100);
+    assert_eq!(cpu.regs.sp, 0xfffe);
+  }
+
+  #[test]
+  fn flags() {
+    let cpu = Z80::new();
+    assert!(cpu.regs.z());
+    assert!(!cpu.regs.h());
+    assert!(cpu.regs.n());
+    assert!(cpu.regs.c());
   }
 }
