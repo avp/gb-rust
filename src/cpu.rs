@@ -33,8 +33,17 @@ impl CPU {
   /// Execute the next opcode.
   /// Return the m-time taken to run that opcode.
   fn exec(&mut self) -> u32 {
+    macro_rules! swap {
+      ($reg:ident) => {{
+        let top = self.regs.$reg >> 4;
+        let bot = self.regs.$reg & 0xf;
+        self.regs.$reg = (bot << 4) | top;
+        2
+      }}
+    }
+
     match self.bump() {
-      0x00 => unimplemented!(),
+      0x00 => 1, // nop
       0x01 => unimplemented!(),
       0x02 => unimplemented!(),
       0x03 => unimplemented!(),
@@ -237,7 +246,23 @@ impl CPU {
       0xc8 => unimplemented!(),
       0xc9 => unimplemented!(),
       0xca => unimplemented!(),
-      0xcb => unimplemented!(),
+      0xcb => match self.bump() {
+        0x37 => swap!(a),
+        0x30 => swap!(b),
+        0x31 => swap!(c),
+        0x32 => swap!(d),
+        0x33 => swap!(e),
+        0x34 => swap!(h),
+        0x35 => swap!(l),
+        0x36 => {
+          let byte = self.mem.rb(self.regs.hl());
+          let top = byte >> 4;
+          let bot = byte & 0xf;
+          self.mem.wb(self.regs.hl(), (bot << 4) | top);
+          4
+        },
+        _ => panic!("Unsupported opcode in swap"),
+      }
       0xcc => unimplemented!(),
       0xcd => unimplemented!(),
       0xce => unimplemented!(),
