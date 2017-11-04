@@ -6,20 +6,20 @@ const C: u8 = 0x10;
 #[derive(Debug, Eq, PartialEq)]
 pub struct Registers {
   /// General-purpose registers.
-  a: u8,
-  b: u8,
-  c: u8,
-  d: u8,
-  e: u8,
-  f: u8, // Flag register.
-  h: u8,
-  l: u8,
+  pub a: u8,
+  pub b: u8,
+  pub c: u8,
+  pub d: u8,
+  pub e: u8,
+  pub f: u8, // Flag register.
+  pub h: u8,
+  pub l: u8,
 
   /// Program counter.
-  pc: u16,
+  pub pc: u16,
 
   /// Stack pointer.
-  sp: u16,
+  pub sp: u16,
 
   /// Last Clock.
   m: u32,
@@ -47,16 +47,16 @@ impl Registers {
   }
 
   pub fn af(&self) -> u16 {
-    ((self.a as u16) << 8) | (self.f as u16)
+    (u16::from(self.a) << 8) | u16::from(self.f)
   }
   pub fn bc(&self) -> u16 {
-    ((self.b as u16) << 8) | (self.c as u16)
+    (u16::from(self.b) << 8) | u16::from(self.c)
   }
   pub fn de(&self) -> u16 {
-    ((self.d as u16) << 8) | (self.e as u16)
+    (u16::from(self.d) << 8) | u16::from(self.e)
   }
   pub fn hl(&self) -> u16 {
-    ((self.h as u16) << 8) | (self.l as u16)
+    (u16::from(self.h) << 8) | u16::from(self.l)
   }
 
   pub fn z(&self) -> bool {

@@ -1,5 +1,5 @@
 [package]
-name = "gba"
+name = "gb-rust"
 version = "0.1.0"
 authors = ["Aakash Patel <aakpat6@gmail.com>"]
 

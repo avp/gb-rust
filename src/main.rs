@@ -2,7 +2,7 @@
 
 #![cfg_attr(test, allow(dead_code))]
 
-mod z80;
+mod cpu;
 mod mem;
 mod reg;
 
