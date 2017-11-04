@@ -51,6 +51,13 @@ impl Memory {
     }
   }
 
+  /// Read a 2-byte little-endian word from `addr`.
+  pub fn rw(&mut self, addr: u16) -> u16 {
+    let a = self.rb(addr) as u16;
+    let b = self.rb(addr + 1) as u16;
+    (b << 8) | a
+  }
+
   /// Write `value` at address `addr`
   pub fn wb(&mut self, addr: u16, value: u8) {
     unimplemented!();
