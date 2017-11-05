@@ -13,7 +13,14 @@ pub struct Memory {
 
 impl Memory {
   pub fn new() -> Memory {
-    unimplemented!();
+    Memory {
+      bios_mapped: false,
+      bios: vec![],
+      rom: vec![],
+      wram: vec![],
+      eram: vec![],
+      zram: vec![],
+    }
   }
 
   /// Read a byte at address `addr`.
