@@ -59,6 +59,20 @@ impl Registers {
     (u16::from(self.h) << 8) | u16::from(self.l)
   }
 
+  pub fn hl_inc(&mut self) {
+    if self.l == 0xff {
+      self.h += 1;
+    }
+    self.l += 1;
+  }
+  pub fn hl_dec(&mut self) {
+    if self.l == 0 {
+      self.h -= 1;
+    }
+    self.l -= 1;
+  }
+
+
   pub fn z(&self) -> bool {
     //! Zero flag
     self.f & Z != 0

@@ -35,6 +35,11 @@ impl CPU {
   /// Execute the next opcode.
   /// Return the m-time taken to run that opcode.
   fn exec(&mut self) -> u32 {
+    macro_rules! read_u16_le {
+      () => {
+        u16::from(self.bump()) | (u16::from(self.bump()) << 8)
+      }
+    }
     macro_rules! ld_nn_n {
       ($reg:ident) => {{
         let imm = self.bump();
@@ -77,7 +82,7 @@ impl CPU {
     match self.bump() {
       0x00 => 1, // nop
       0x01 => unimplemented!(),
-      0x02 => unimplemented!(),
+      0x02 => ld_r1m_r2!(bc, a),
       0x03 => unimplemented!(),
       0x04 => unimplemented!(),
       0x05 => unimplemented!(),
@@ -85,7 +90,7 @@ impl CPU {
       0x07 => unimplemented!(),
       0x08 => unimplemented!(),
       0x09 => unimplemented!(),
-      0x0a => unimplemented!(),
+      0x0a => ld_r1_r2m!(a, bc),
       0x0b => unimplemented!(),
       0x0c => unimplemented!(),
       0x0d => unimplemented!(),
@@ -94,7 +99,7 @@ impl CPU {
 
       0x10 => unimplemented!(),
       0x11 => unimplemented!(),
-      0x12 => unimplemented!(),
+      0x12 => ld_r1m_r2!(de, a),
       0x13 => unimplemented!(),
       0x14 => unimplemented!(),
       0x15 => unimplemented!(),
@@ -102,7 +107,7 @@ impl CPU {
       0x17 => unimplemented!(),
       0x18 => unimplemented!(),
       0x19 => unimplemented!(),
-      0x1a => unimplemented!(),
+      0x1a => ld_r1_r2m!(a, de),
       0x1b => unimplemented!(),
       0x1c => unimplemented!(),
       0x1d => unimplemented!(),
@@ -111,7 +116,11 @@ impl CPU {
 
       0x20 => unimplemented!(),
       0x21 => unimplemented!(),
-      0x22 => unimplemented!(),
+      0x22 => {
+        ld_r1m_r2!(hl, a);
+        self.regs.hl_inc();
+        2
+      }
       0x23 => unimplemented!(),
       0x24 => unimplemented!(),
       0x25 => unimplemented!(),
@@ -119,7 +128,11 @@ impl CPU {
       0x27 => unimplemented!(),
       0x28 => unimplemented!(),
       0x29 => unimplemented!(),
-      0x2a => unimplemented!(),
+      0x2a => {
+        ld_r1_r2m!(a, hl);
+        self.regs.hl_inc();
+        2
+      }
       0x2b => unimplemented!(),
       0x2c => unimplemented!(),
       0x2d => unimplemented!(),
@@ -128,7 +141,11 @@ impl CPU {
 
       0x30 => unimplemented!(),
       0x31 => unimplemented!(),
-      0x32 => unimplemented!(),
+      0x32 => {
+        ld_r1m_r2!(hl, a);
+        self.regs.hl_dec();
+        2
+      }
       0x33 => unimplemented!(),
       0x34 => unimplemented!(),
       0x35 => unimplemented!(),
@@ -140,11 +157,18 @@ impl CPU {
       0x37 => unimplemented!(),
       0x38 => unimplemented!(),
       0x39 => unimplemented!(),
-      0x3a => unimplemented!(),
+      0x3a => {
+        ld_r1_r2m!(a, hl);
+        self.regs.hl_dec();
+        2
+      }
       0x3b => unimplemented!(),
       0x3c => unimplemented!(),
       0x3d => unimplemented!(),
-      0x3e => unimplemented!(),
+      0x3e => {
+        self.regs.a = self.bump();
+        2
+      }
       0x3f => unimplemented!(),
 
       0x40 => ld_r1_r2!(b, b),
@@ -205,7 +229,7 @@ impl CPU {
       0x74 => ld_r1m_r2!(hl, h),
       0x75 => ld_r1m_r2!(hl, l),
       0x76 => unimplemented!(),
-      0x77 => unimplemented!(),
+      0x77 => ld_r1m_r2!(hl, a),
       0x78 => ld_r1_r2!(a, b),
       0x79 => ld_r1_r2!(a, c),
       0x7a => ld_r1_r2!(a, d),
@@ -335,9 +359,16 @@ impl CPU {
       0xde => unimplemented!(),
       0xdf => unimplemented!(),
 
-      0xe0 => unimplemented!(),
+      0xe0 => {
+        let n = self.bump();
+        self.mem.wb(0xff00 + u16::from(n), self.regs.a);
+        3
+      }
       0xe1 => unimplemented!(),
-      0xe2 => unimplemented!(),
+      0xe2 => {
+        self.mem.wb(0xff00 + u16::from(self.regs.c), self.regs.a);
+        2
+      }
       0xe3 => unimplemented!(),
       0xe4 => unimplemented!(),
       0xe5 => unimplemented!(),
@@ -345,16 +376,27 @@ impl CPU {
       0xe7 => unimplemented!(),
       0xe8 => unimplemented!(),
       0xe9 => unimplemented!(),
-      0xea => unimplemented!(),
+      0xea => {
+        let nn = read_u16_le!();
+        self.mem.wb(nn, self.regs.a);
+        4
+      }
       0xeb => unimplemented!(),
       0xec => unimplemented!(),
       0xed => unimplemented!(),
       0xee => unimplemented!(),
       0xef => unimplemented!(),
 
-      0xf0 => unimplemented!(),
+      0xf0 => {
+        let n = self.bump();
+        self.regs.a = self.mem.rb(0xff00 + u16::from(n));
+        3
+      }
       0xf1 => unimplemented!(),
-      0xf2 => unimplemented!(),
+      0xf2 => {
+        self.regs.a = self.mem.rb(0xff00 + u16::from(self.regs.c));
+        2
+      }
       0xf3 => unimplemented!(),
       0xf4 => unimplemented!(),
       0xf5 => unimplemented!(),
@@ -362,7 +404,11 @@ impl CPU {
       0xf7 => unimplemented!(),
       0xf8 => unimplemented!(),
       0xf9 => unimplemented!(),
-      0xfa => unimplemented!(),
+      0xfa => {
+        let nn = read_u16_le!();
+        self.regs.a = self.mem.rb(nn);
+        4
+      }
       0xfb => unimplemented!(),
       0xfc => unimplemented!(),
       0xfd => unimplemented!(),
