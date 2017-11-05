@@ -90,6 +90,37 @@ impl CPU {
       }}
     }
 
+    macro_rules! add_a_n {
+      ($n:expr) => {{
+        let a = self.regs.a;
+        let n = $n;
+        self.regs.a = a + n;
+        self.regs.f = 0;
+        self.regs.f |= if a + n == 0 {reg::Z} else {0};
+        self.regs.f |= if (a & 0xf) + (n & 0xf) > 0xf {reg::H} else {0};
+        self.regs.f |=
+          if u16::from(a) + u16::from(n) > 0xff {reg::C} else {0};
+        1
+      }}
+    }
+    macro_rules! adc_a_n {
+      ($n:expr) => {{
+        let a = self.regs.a;
+        let n = $n;
+        let c = if self.regs.f & reg::C != 0 {1} else {0};
+        self.regs.a = a + n + c;
+        self.regs.f = 0;
+        self.regs.f |= if a + n + c == 0 {reg::Z} else {0};
+        self.regs.f |=
+          if (a & 0xf) + (n & 0xf) + c > 0xf {reg::H} else {0};
+        self.regs.f |=
+          if u16::from(a) + u16::from(n) + u16::from(c) > 0xff {reg::C}
+          else {0};
+        1
+      }}
+    }
+
+
     macro_rules! swap {
       ($reg:ident) => {{
         let top = self.regs.$reg >> 4;
@@ -271,22 +302,28 @@ impl CPU {
       0x7e => ld_r1_r2m!(a, hl),
       0x7f => ld_r1_r2!(a, a),
 
-      0x80 => unimplemented!(),
-      0x81 => unimplemented!(),
-      0x82 => unimplemented!(),
-      0x83 => unimplemented!(),
-      0x84 => unimplemented!(),
-      0x85 => unimplemented!(),
-      0x86 => unimplemented!(),
-      0x87 => unimplemented!(),
-      0x88 => unimplemented!(),
-      0x89 => unimplemented!(),
-      0x8a => unimplemented!(),
-      0x8b => unimplemented!(),
-      0x8c => unimplemented!(),
-      0x8d => unimplemented!(),
-      0x8e => unimplemented!(),
-      0x8f => unimplemented!(),
+      0x80 => add_a_n!(self.regs.b),
+      0x81 => add_a_n!(self.regs.c),
+      0x82 => add_a_n!(self.regs.d),
+      0x83 => add_a_n!(self.regs.e),
+      0x84 => add_a_n!(self.regs.h),
+      0x85 => add_a_n!(self.regs.l),
+      0x86 => add_a_n!(self.mem.rb(self.regs.hl())),
+      0x87 => {
+        add_a_n!(self.regs.a);
+        2
+      }
+      0x88 => adc_a_n!(self.regs.b),
+      0x89 => adc_a_n!(self.regs.c),
+      0x8a => adc_a_n!(self.regs.d),
+      0x8b => adc_a_n!(self.regs.e),
+      0x8c => adc_a_n!(self.regs.h),
+      0x8d => adc_a_n!(self.regs.l),
+      0x8e => {
+        adc_a_n!(self.mem.rb(self.regs.hl()));
+        2
+      }
+      0x8f => adc_a_n!(self.regs.a),
 
       0x90 => unimplemented!(),
       0x91 => unimplemented!(),
@@ -345,7 +382,10 @@ impl CPU {
       0xc3 => unimplemented!(),
       0xc4 => unimplemented!(),
       0xc5 => push!(b, c),
-      0xc6 => unimplemented!(),
+      0xc6 => {
+        add_a_n!(self.bump());
+        2
+      }
       0xc7 => unimplemented!(),
       0xc8 => unimplemented!(),
       0xc9 => unimplemented!(),
@@ -371,7 +411,10 @@ impl CPU {
       }
       0xcc => unimplemented!(),
       0xcd => unimplemented!(),
-      0xce => unimplemented!(),
+      0xce => {
+        adc_a_n!(self.bump());
+        2
+      }
       0xcf => unimplemented!(),
 
       0xd0 => unimplemented!(),
