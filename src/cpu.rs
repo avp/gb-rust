@@ -47,6 +47,13 @@ impl CPU {
         2
       }}
     }
+    macro_rules! ld_n_nn {
+      ($r1:ident, $r2:ident) => {{
+        self.regs.$r2 = self.bump();
+        self.regs.$r1 = self.bump();
+        3
+      }}
+    }
     macro_rules! ld_r1_r2 {
       ($r1:ident, $r2:ident) => {{
         self.regs.$r1 = self.regs.$r2;
@@ -66,6 +73,23 @@ impl CPU {
       }}
     }
 
+    macro_rules! push {
+      ($r1:ident, $r2:ident) => {{
+        self.mem.wb(self.regs.sp - 1, self.regs.$r1);
+        self.mem.wb(self.regs.sp - 2, self.regs.$r2);
+        self.regs.sp -= 2;
+        4
+      }}
+    }
+    macro_rules! pop {
+      ($r1:ident, $r2:ident) => {{
+        self.regs.$r2 = self.mem.rb(self.regs.sp);
+        self.regs.$r1 = self.mem.rb(self.regs.sp+1);
+        self.regs.sp += 2;
+        3
+      }}
+    }
+
     macro_rules! swap {
       ($reg:ident) => {{
         let top = self.regs.$reg >> 4;
@@ -81,14 +105,19 @@ impl CPU {
 
     match self.bump() {
       0x00 => 1, // nop
-      0x01 => unimplemented!(),
+      0x01 => ld_n_nn!(b, c),
       0x02 => ld_r1m_r2!(bc, a),
       0x03 => unimplemented!(),
       0x04 => unimplemented!(),
       0x05 => unimplemented!(),
       0x06 => ld_nn_n!(b),
       0x07 => unimplemented!(),
-      0x08 => unimplemented!(),
+      0x08 => {
+        let nn = read_u16_le!();
+        let val = self.mem.rb(self.regs.sp);
+        self.mem.wb(nn, val);
+        5
+      }
       0x09 => unimplemented!(),
       0x0a => ld_r1_r2m!(a, bc),
       0x0b => unimplemented!(),
@@ -98,7 +127,7 @@ impl CPU {
       0x0f => unimplemented!(),
 
       0x10 => unimplemented!(),
-      0x11 => unimplemented!(),
+      0x11 => ld_n_nn!(d, e),
       0x12 => ld_r1m_r2!(de, a),
       0x13 => unimplemented!(),
       0x14 => unimplemented!(),
@@ -115,7 +144,7 @@ impl CPU {
       0x1f => unimplemented!(),
 
       0x20 => unimplemented!(),
-      0x21 => unimplemented!(),
+      0x21 => ld_n_nn!(h, l),
       0x22 => {
         ld_r1m_r2!(hl, a);
         self.regs.hl_inc();
@@ -140,7 +169,10 @@ impl CPU {
       0x2f => unimplemented!(),
 
       0x30 => unimplemented!(),
-      0x31 => unimplemented!(),
+      0x31 => {
+        self.regs.sp = read_u16_le!();
+        3
+      }
       0x32 => {
         ld_r1m_r2!(hl, a);
         self.regs.hl_dec();
@@ -308,11 +340,11 @@ impl CPU {
       0xbf => unimplemented!(),
 
       0xc0 => unimplemented!(),
-      0xc1 => unimplemented!(),
+      0xc1 => pop!(b, c),
       0xc2 => unimplemented!(),
       0xc3 => unimplemented!(),
       0xc4 => unimplemented!(),
-      0xc5 => unimplemented!(),
+      0xc5 => push!(b, c),
       0xc6 => unimplemented!(),
       0xc7 => unimplemented!(),
       0xc8 => unimplemented!(),
@@ -343,11 +375,11 @@ impl CPU {
       0xcf => unimplemented!(),
 
       0xd0 => unimplemented!(),
-      0xd1 => unimplemented!(),
+      0xd1 => pop!(d, e),
       0xd2 => unimplemented!(),
       0xd3 => unimplemented!(),
       0xd4 => unimplemented!(),
-      0xd5 => unimplemented!(),
+      0xd5 => push!(d, e),
       0xd6 => unimplemented!(),
       0xd7 => unimplemented!(),
       0xd8 => unimplemented!(),
@@ -364,14 +396,14 @@ impl CPU {
         self.mem.wb(0xff00 + u16::from(n), self.regs.a);
         3
       }
-      0xe1 => unimplemented!(),
+      0xe1 => pop!(h, l),
       0xe2 => {
         self.mem.wb(0xff00 + u16::from(self.regs.c), self.regs.a);
         2
       }
       0xe3 => unimplemented!(),
       0xe4 => unimplemented!(),
-      0xe5 => unimplemented!(),
+      0xe5 => push!(h, l),
       0xe6 => unimplemented!(),
       0xe7 => unimplemented!(),
       0xe8 => unimplemented!(),
@@ -392,18 +424,21 @@ impl CPU {
         self.regs.a = self.mem.rb(0xff00 + u16::from(n));
         3
       }
-      0xf1 => unimplemented!(),
+      0xf1 => pop!(a, f),
       0xf2 => {
         self.regs.a = self.mem.rb(0xff00 + u16::from(self.regs.c));
         2
       }
       0xf3 => unimplemented!(),
       0xf4 => unimplemented!(),
-      0xf5 => unimplemented!(),
+      0xf5 => push!(a, f),
       0xf6 => unimplemented!(),
       0xf7 => unimplemented!(),
       0xf8 => unimplemented!(),
-      0xf9 => unimplemented!(),
+      0xf9 => {
+        self.regs.sp = self.regs.hl();
+        2
+      }
       0xfa => {
         let nn = read_u16_le!();
         self.regs.a = self.mem.rb(nn);
