@@ -33,6 +33,14 @@ impl CPU {
   /// Execute the next opcode.
   /// Return the m-time taken to run that opcode.
   fn exec(&mut self) -> u32 {
+    macro_rules! ld_nn_n {
+      ($reg:ident) => {{
+        let imm = self.bump();
+        self.regs.$reg = imm;
+        2
+      }}
+    }
+
     macro_rules! swap {
       ($reg:ident) => {{
         let top = self.regs.$reg >> 4;
@@ -49,7 +57,7 @@ impl CPU {
       0x03 => unimplemented!(),
       0x04 => unimplemented!(),
       0x05 => unimplemented!(),
-      0x06 => unimplemented!(),
+      0x06 => ld_nn_n!(b),
       0x07 => unimplemented!(),
       0x08 => unimplemented!(),
       0x09 => unimplemented!(),
@@ -57,7 +65,7 @@ impl CPU {
       0x0b => unimplemented!(),
       0x0c => unimplemented!(),
       0x0d => unimplemented!(),
-      0x0e => unimplemented!(),
+      0x0e => ld_nn_n!(c),
       0x0f => unimplemented!(),
       0x10 => unimplemented!(),
       0x11 => unimplemented!(),
@@ -65,7 +73,7 @@ impl CPU {
       0x13 => unimplemented!(),
       0x14 => unimplemented!(),
       0x15 => unimplemented!(),
-      0x16 => unimplemented!(),
+      0x16 => ld_nn_n!(d),
       0x17 => unimplemented!(),
       0x18 => unimplemented!(),
       0x19 => unimplemented!(),
@@ -73,7 +81,7 @@ impl CPU {
       0x1b => unimplemented!(),
       0x1c => unimplemented!(),
       0x1d => unimplemented!(),
-      0x1e => unimplemented!(),
+      0x1e => ld_nn_n!(e),
       0x1f => unimplemented!(),
       0x20 => unimplemented!(),
       0x21 => unimplemented!(),
@@ -81,7 +89,7 @@ impl CPU {
       0x23 => unimplemented!(),
       0x24 => unimplemented!(),
       0x25 => unimplemented!(),
-      0x26 => unimplemented!(),
+      0x26 => ld_nn_n!(h),
       0x27 => unimplemented!(),
       0x28 => unimplemented!(),
       0x29 => unimplemented!(),
@@ -89,7 +97,7 @@ impl CPU {
       0x2b => unimplemented!(),
       0x2c => unimplemented!(),
       0x2d => unimplemented!(),
-      0x2e => unimplemented!(),
+      0x2e => ld_nn_n!(l),
       0x2f => unimplemented!(),
       0x30 => unimplemented!(),
       0x31 => unimplemented!(),
