@@ -1,7 +1,7 @@
-const Z: u8 = 0x80;
-const H: u8 = 0x40;
-const N: u8 = 0x20;
-const C: u8 = 0x10;
+pub const Z: u8 = 0x80;
+pub const H: u8 = 0x40;
+pub const N: u8 = 0x20;
+pub const C: u8 = 0x10;
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct Registers {

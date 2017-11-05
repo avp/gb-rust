@@ -1,4 +1,6 @@
 use mem::Memory;
+
+use reg;
 use reg::Registers;
 
 #[derive(Debug)]
@@ -40,12 +42,34 @@ impl CPU {
         2
       }}
     }
+    macro_rules! ld_r1_r2 {
+      ($r1:ident, $r2:ident) => {{
+        self.regs.$r1 = self.regs.$r2;
+        1
+      }}
+    }
+    macro_rules! ld_r1_r2m {
+      ($r1:ident, $r2m:ident) => {{
+        self.regs.$r1 = self.mem.rb(self.regs.$r2m());
+        2
+      }}
+    }
+    macro_rules! ld_r1m_r2 {
+      ($r1m:ident, $r2:ident) => {{
+        self.mem.wb(self.regs.$r1m(), self.regs.$r2);
+        2
+      }}
+    }
 
     macro_rules! swap {
       ($reg:ident) => {{
         let top = self.regs.$reg >> 4;
         let bot = self.regs.$reg & 0xf;
         self.regs.$reg = (bot << 4) | top;
+        self.regs.f = 0;
+        if self.regs.$reg == 0 {
+          self.regs.f |= reg::Z;
+        }
         2
       }}
     }
@@ -105,7 +129,7 @@ impl CPU {
       0x33 => unimplemented!(),
       0x34 => unimplemented!(),
       0x35 => unimplemented!(),
-      0x36 => unimplemented!(),
+      0x36 => { let n = self.bump(); self.mem.wb(self.regs.hl(), n); 3 },
       0x37 => unimplemented!(),
       0x38 => unimplemented!(),
       0x39 => unimplemented!(),
@@ -115,70 +139,70 @@ impl CPU {
       0x3d => unimplemented!(),
       0x3e => unimplemented!(),
       0x3f => unimplemented!(),
-      0x40 => unimplemented!(),
-      0x41 => unimplemented!(),
-      0x42 => unimplemented!(),
-      0x43 => unimplemented!(),
-      0x44 => unimplemented!(),
-      0x45 => unimplemented!(),
-      0x46 => unimplemented!(),
+      0x40 => ld_r1_r2!(b,b),
+      0x41 => ld_r1_r2!(b,c),
+      0x42 => ld_r1_r2!(b,d),
+      0x43 => ld_r1_r2!(b,e),
+      0x44 => ld_r1_r2!(b,h),
+      0x45 => ld_r1_r2!(b,l),
+      0x46 => ld_r1_r2m!(b,hl),
       0x47 => unimplemented!(),
-      0x48 => unimplemented!(),
-      0x49 => unimplemented!(),
-      0x4a => unimplemented!(),
-      0x4b => unimplemented!(),
-      0x4c => unimplemented!(),
-      0x4d => unimplemented!(),
-      0x4e => unimplemented!(),
+      0x48 => ld_r1_r2!(c,b),
+      0x49 => ld_r1_r2!(c,c),
+      0x4a => ld_r1_r2!(c,d),
+      0x4b => ld_r1_r2!(c,e),
+      0x4c => ld_r1_r2!(c,h),
+      0x4d => ld_r1_r2!(c,l),
+      0x4e => ld_r1_r2m!(c,hl),
       0x4f => unimplemented!(),
-      0x50 => unimplemented!(),
-      0x51 => unimplemented!(),
-      0x52 => unimplemented!(),
-      0x53 => unimplemented!(),
-      0x54 => unimplemented!(),
-      0x55 => unimplemented!(),
-      0x56 => unimplemented!(),
+      0x50 => ld_r1_r2!(d,b),
+      0x51 => ld_r1_r2!(d,c),
+      0x52 => ld_r1_r2!(d,d),
+      0x53 => ld_r1_r2!(d,e),
+      0x54 => ld_r1_r2!(d,h),
+      0x55 => ld_r1_r2!(d,l),
+      0x56 => ld_r1_r2m!(d,hl),
       0x57 => unimplemented!(),
-      0x58 => unimplemented!(),
-      0x59 => unimplemented!(),
-      0x5a => unimplemented!(),
-      0x5b => unimplemented!(),
-      0x5c => unimplemented!(),
-      0x5d => unimplemented!(),
-      0x5e => unimplemented!(),
+      0x58 => ld_r1_r2!(e,b),
+      0x59 => ld_r1_r2!(e,c),
+      0x5a => ld_r1_r2!(e,d),
+      0x5b => ld_r1_r2!(e,e),
+      0x5c => ld_r1_r2!(e,h),
+      0x5d => ld_r1_r2!(e,l),
+      0x5e => ld_r1_r2m!(e,hl),
       0x5f => unimplemented!(),
-      0x60 => unimplemented!(),
-      0x61 => unimplemented!(),
-      0x62 => unimplemented!(),
-      0x63 => unimplemented!(),
-      0x64 => unimplemented!(),
-      0x65 => unimplemented!(),
-      0x66 => unimplemented!(),
+      0x60 => ld_r1_r2!(h,b),
+      0x61 => ld_r1_r2!(h,c),
+      0x62 => ld_r1_r2!(h,d),
+      0x63 => ld_r1_r2!(h,e),
+      0x64 => ld_r1_r2!(h,h),
+      0x65 => ld_r1_r2!(h,l),
+      0x66 => ld_r1_r2m!(h,hl),
       0x67 => unimplemented!(),
-      0x68 => unimplemented!(),
-      0x69 => unimplemented!(),
-      0x6a => unimplemented!(),
-      0x6b => unimplemented!(),
-      0x6c => unimplemented!(),
-      0x6d => unimplemented!(),
-      0x6e => unimplemented!(),
+      0x68 => ld_r1_r2!(l,b),
+      0x69 => ld_r1_r2!(l,c),
+      0x6a => ld_r1_r2!(l,d),
+      0x6b => ld_r1_r2!(l,e),
+      0x6c => ld_r1_r2!(l,h),
+      0x6d => ld_r1_r2!(l,l),
+      0x6e => ld_r1_r2m!(l,hl),
       0x6f => unimplemented!(),
-      0x70 => unimplemented!(),
-      0x71 => unimplemented!(),
-      0x72 => unimplemented!(),
-      0x73 => unimplemented!(),
-      0x74 => unimplemented!(),
-      0x75 => unimplemented!(),
+      0x70 => ld_r1m_r2!(hl, b),
+      0x71 => ld_r1m_r2!(hl, c),
+      0x72 => ld_r1m_r2!(hl, d),
+      0x73 => ld_r1m_r2!(hl, e),
+      0x74 => ld_r1m_r2!(hl, h),
+      0x75 => ld_r1m_r2!(hl, l),
       0x76 => unimplemented!(),
       0x77 => unimplemented!(),
-      0x78 => unimplemented!(),
-      0x79 => unimplemented!(),
-      0x7a => unimplemented!(),
-      0x7b => unimplemented!(),
-      0x7c => unimplemented!(),
-      0x7d => unimplemented!(),
-      0x7e => unimplemented!(),
-      0x7f => unimplemented!(),
+      0x78 => ld_r1_r2!(a,b),
+      0x79 => ld_r1_r2!(a,c),
+      0x7a => ld_r1_r2!(a,d),
+      0x7b => ld_r1_r2!(a,e),
+      0x7c => ld_r1_r2!(a,h),
+      0x7d => ld_r1_r2!(a,l),
+      0x7e => ld_r1_r2m!(a,hl),
+      0x7f => ld_r1_r2!(a,a),
       0x80 => unimplemented!(),
       0x81 => unimplemented!(),
       0x82 => unimplemented!(),
@@ -326,4 +350,8 @@ impl CPU {
       _ => panic!("Invalid opcode"),
     }
   }
+}
+
+#[cfg(test)]
+mod tests {
 }
