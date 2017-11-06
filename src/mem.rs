@@ -24,7 +24,7 @@ impl Memory {
   }
 
   /// Read a byte at address `addr`.
-  pub fn rb(&mut self, addr: u16) -> u8 {
+  pub fn rb(&self, addr: u16) -> u8 {
     match addr >> 12 {
       // ROM 0
       0x0...0x3 => self.rom[addr as usize],

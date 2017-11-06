@@ -36,9 +36,11 @@ impl CPU {
   /// Return the m-time taken to run that opcode.
   fn exec(&mut self) -> u32 {
     macro_rules! read_u16_le {
-      () => {
-        u16::from(self.bump()) | (u16::from(self.bump()) << 8)
-      }
+      () => {{
+        let a = self.bump();
+        let b = self.bump();
+        u16::from(a) | (u16::from(b) << 8)
+      }}
     }
     macro_rules! ld_nn_n {
       ($reg:ident) => {{
@@ -107,7 +109,7 @@ impl CPU {
       ($n:expr) => {{
         let a = self.regs.a;
         let n = $n;
-        let c = if self.regs.f & reg::C != 0 {1} else {0};
+        let c = if self.regs.c() {1} else {0};
         self.regs.a = a + n + c;
         self.regs.f = 0;
         self.regs.f |= if a + n + c == 0 {reg::Z} else {0};
@@ -116,6 +118,32 @@ impl CPU {
         self.regs.f |=
           if u16::from(a) + u16::from(n) + u16::from(c) > 0xff {reg::C}
           else {0};
+        1
+      }}
+    }
+
+    macro_rules! sub_a_n {
+      ($n:expr) => {{
+        let a = self.regs.a;
+        let n = $n;
+        self.regs.a = a - n;
+        self.regs.f = reg::N;
+        self.regs.f |= if a - n == 0 {reg::Z} else {0};
+        self.regs.f |= if a < n {reg::C} else {0};
+        self.regs.f |= if (a & 0xf) < (n & 0xf) {reg::H} else {0};
+        1
+      }}
+    }
+    macro_rules! sbc_a_n {
+      ($n:expr) => {{
+        let a = self.regs.a;
+        let n = $n;
+        let c = if self.regs.c() {1} else {0};
+        self.regs.a = a - (n + c);
+        self.regs.f = reg::N;
+        self.regs.f |= if a - (n + c) == 0 {reg::Z} else {0};
+        self.regs.f |= if a < (n + c) {reg::C} else {0};
+        self.regs.f |= if (a & 0xf) < ((n + c) & 0xf) {reg::H} else {0};
         1
       }}
     }
@@ -325,22 +353,28 @@ impl CPU {
       }
       0x8f => adc_a_n!(self.regs.a),
 
-      0x90 => unimplemented!(),
-      0x91 => unimplemented!(),
-      0x92 => unimplemented!(),
-      0x93 => unimplemented!(),
-      0x94 => unimplemented!(),
-      0x95 => unimplemented!(),
-      0x96 => unimplemented!(),
-      0x97 => unimplemented!(),
-      0x98 => unimplemented!(),
-      0x99 => unimplemented!(),
-      0x9a => unimplemented!(),
-      0x9b => unimplemented!(),
-      0x9c => unimplemented!(),
-      0x9d => unimplemented!(),
-      0x9e => unimplemented!(),
-      0x9f => unimplemented!(),
+      0x90 => sub_a_n!(self.regs.b),
+      0x91 => sub_a_n!(self.regs.c),
+      0x92 => sub_a_n!(self.regs.d),
+      0x93 => sub_a_n!(self.regs.e),
+      0x94 => sub_a_n!(self.regs.h),
+      0x95 => sub_a_n!(self.regs.l),
+      0x96 => {
+        sub_a_n!(self.mem.rb(self.regs.hl()));
+        2
+      }
+      0x97 => sbc_a_n!(self.regs.a),
+      0x98 => sbc_a_n!(self.regs.b),
+      0x99 => sbc_a_n!(self.regs.c),
+      0x9a => sbc_a_n!(self.regs.d),
+      0x9b => sbc_a_n!(self.regs.e),
+      0x9c => sbc_a_n!(self.regs.h),
+      0x9d => sbc_a_n!(self.regs.l),
+      0x9e => {
+        sbc_a_n!(self.mem.rb(self.regs.hl()));
+        2
+      }
+      0x9f => sbc_a_n!(self.regs.a),
 
       0xa0 => unimplemented!(),
       0xa1 => unimplemented!(),
@@ -423,7 +457,10 @@ impl CPU {
       0xd3 => unimplemented!(),
       0xd4 => unimplemented!(),
       0xd5 => push!(d, e),
-      0xd6 => unimplemented!(),
+      0xd6 => {
+        sub_a_n!(self.bump());
+        2
+      }
       0xd7 => unimplemented!(),
       0xd8 => unimplemented!(),
       0xd9 => unimplemented!(),

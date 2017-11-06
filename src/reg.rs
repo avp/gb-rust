@@ -1,6 +1,6 @@
 pub const Z: u8 = 0x80;
-pub const H: u8 = 0x40;
-pub const N: u8 = 0x20;
+pub const N: u8 = 0x40;
+pub const H: u8 = 0x20;
 pub const C: u8 = 0x10;
 
 #[derive(Debug, Eq, PartialEq)]
@@ -110,8 +110,8 @@ mod tests {
   fn flags() {
     let regs = Registers::new();
     assert!(regs.z());
-    assert!(!regs.h());
-    assert!(regs.n());
+    assert!(!regs.n());
+    assert!(regs.h());
     assert!(regs.c());
   }
 }
