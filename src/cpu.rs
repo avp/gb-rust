@@ -149,6 +149,14 @@ impl CPU {
     }
 
 
+    macro_rules! and_a_n {
+      ($n:expr) => {{
+        self.regs.a &= $n;
+        self.regs.f = if self.regs.a == 0 {reg::Z} else {0} | reg::H;
+        1
+      }}
+    }
+
     macro_rules! swap {
       ($reg:ident) => {{
         let top = self.regs.$reg >> 4;
@@ -376,14 +384,17 @@ impl CPU {
       }
       0x9f => sbc_a_n!(self.regs.a),
 
-      0xa0 => unimplemented!(),
-      0xa1 => unimplemented!(),
-      0xa2 => unimplemented!(),
-      0xa3 => unimplemented!(),
-      0xa4 => unimplemented!(),
-      0xa5 => unimplemented!(),
-      0xa6 => unimplemented!(),
-      0xa7 => unimplemented!(),
+      0xa0 => and_a_n!(self.regs.b),
+      0xa1 => and_a_n!(self.regs.c),
+      0xa2 => and_a_n!(self.regs.d),
+      0xa3 => and_a_n!(self.regs.e),
+      0xa4 => and_a_n!(self.regs.h),
+      0xa5 => and_a_n!(self.regs.l),
+      0xa6 => {
+        and_a_n!(self.mem.rb(self.regs.hl()));
+        2
+      }
+      0xa7 => and_a_n!(self.regs.a),
       0xa8 => unimplemented!(),
       0xa9 => unimplemented!(),
       0xaa => unimplemented!(),
@@ -484,7 +495,10 @@ impl CPU {
       0xe3 => unimplemented!(),
       0xe4 => unimplemented!(),
       0xe5 => push!(h, l),
-      0xe6 => unimplemented!(),
+      0xe6 => {
+        and_a_n!(self.bump());
+        2
+      }
       0xe7 => unimplemented!(),
       0xe8 => unimplemented!(),
       0xe9 => unimplemented!(),
