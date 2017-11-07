@@ -162,6 +162,13 @@ impl CPU {
         1
       }}
     }
+    macro_rules! xor_a_n {
+      ($n:expr) => {{
+        self.regs.a ^= $n;
+        self.regs.f = if self.regs.a == 0 {reg::Z} else {0};
+        1
+      }}
+    }
 
     macro_rules! swap {
       ($reg:ident) => {{
@@ -401,14 +408,17 @@ impl CPU {
         2
       }
       0xa7 => and_a_n!(self.regs.a),
-      0xa8 => unimplemented!(),
-      0xa9 => unimplemented!(),
-      0xaa => unimplemented!(),
-      0xab => unimplemented!(),
-      0xac => unimplemented!(),
-      0xad => unimplemented!(),
-      0xae => unimplemented!(),
-      0xaf => unimplemented!(),
+      0xa8 => xor_a_n!(self.regs.b),
+      0xa9 => xor_a_n!(self.regs.c),
+      0xaa => xor_a_n!(self.regs.d),
+      0xab => xor_a_n!(self.regs.e),
+      0xac => xor_a_n!(self.regs.h),
+      0xad => xor_a_n!(self.regs.l),
+      0xae => {
+        xor_a_n!(self.mem.rb(self.regs.hl()));
+        2
+      }
+      0xaf => xor_a_n!(self.regs.a),
 
       0xb0 => or_a_n!(self.regs.b),
       0xb1 => or_a_n!(self.regs.c),
@@ -519,7 +529,10 @@ impl CPU {
       0xeb => unimplemented!(),
       0xec => unimplemented!(),
       0xed => unimplemented!(),
-      0xee => unimplemented!(),
+      0xee => {
+        xor_a_n!(self.bump());
+        2
+      }
       0xef => unimplemented!(),
 
       0xf0 => {
