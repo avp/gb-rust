@@ -148,11 +148,17 @@ impl CPU {
       }}
     }
 
-
     macro_rules! and_a_n {
       ($n:expr) => {{
         self.regs.a &= $n;
         self.regs.f = if self.regs.a == 0 {reg::Z} else {0} | reg::H;
+        1
+      }}
+    }
+    macro_rules! or_a_n {
+      ($n:expr) => {{
+        self.regs.a |= $n;
+        self.regs.f = if self.regs.a == 0 {reg::Z} else {0};
         1
       }}
     }
@@ -404,14 +410,17 @@ impl CPU {
       0xae => unimplemented!(),
       0xaf => unimplemented!(),
 
-      0xb0 => unimplemented!(),
-      0xb1 => unimplemented!(),
-      0xb2 => unimplemented!(),
-      0xb3 => unimplemented!(),
-      0xb4 => unimplemented!(),
-      0xb5 => unimplemented!(),
-      0xb6 => unimplemented!(),
-      0xb7 => unimplemented!(),
+      0xb0 => or_a_n!(self.regs.b),
+      0xb1 => or_a_n!(self.regs.c),
+      0xb2 => or_a_n!(self.regs.d),
+      0xb3 => or_a_n!(self.regs.e),
+      0xb4 => or_a_n!(self.regs.h),
+      0xb5 => or_a_n!(self.regs.l),
+      0xb6 => {
+        or_a_n!(self.mem.rb(self.regs.hl()));
+        2
+      }
+      0xb7 => or_a_n!(self.regs.a),
       0xb8 => unimplemented!(),
       0xb9 => unimplemented!(),
       0xba => unimplemented!(),
@@ -526,7 +535,10 @@ impl CPU {
       0xf3 => unimplemented!(),
       0xf4 => unimplemented!(),
       0xf5 => push!(a, f),
-      0xf6 => unimplemented!(),
+      0xf6 => {
+        or_a_n!(self.bump());
+        2
+      }
       0xf7 => unimplemented!(),
       0xf8 => unimplemented!(),
       0xf9 => {
