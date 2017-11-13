@@ -170,6 +170,17 @@ impl CPU {
       }}
     }
 
+    macro_rules! cp_a_n {
+      ($n:expr) => {{
+        let a = self.regs.a;
+        self.regs.f == reg::N;
+        self.regs.f |= if a == $n {reg::Z} else {0};
+        self.regs.f |= if (a & 0xf) < ($n & 0xf) {reg::H} else {0};
+        self.regs.f |= if (a & 0xf) < ($n & 0xf) {reg::H} else {0};
+        1
+      }}
+    }
+
     macro_rules! swap {
       ($reg:ident) => {{
         let top = self.regs.$reg >> 4;
@@ -431,14 +442,17 @@ impl CPU {
         2
       }
       0xb7 => or_a_n!(self.regs.a),
-      0xb8 => unimplemented!(),
-      0xb9 => unimplemented!(),
-      0xba => unimplemented!(),
-      0xbb => unimplemented!(),
-      0xbc => unimplemented!(),
-      0xbd => unimplemented!(),
-      0xbe => unimplemented!(),
-      0xbf => unimplemented!(),
+      0xb8 => cp_a_n!(self.regs.b),
+      0xb9 => cp_a_n!(self.regs.c),
+      0xba => cp_a_n!(self.regs.d),
+      0xbb => cp_a_n!(self.regs.e),
+      0xbc => cp_a_n!(self.regs.h),
+      0xbd => cp_a_n!(self.regs.l),
+      0xbe => {
+        cp_a_n!(self.mem.rb(self.regs.hl()));
+        2
+      }
+      0xbf => cp_a_n!(self.regs.a),
 
       0xc0 => unimplemented!(),
       0xc1 => pop!(b, c),
@@ -566,7 +580,10 @@ impl CPU {
       0xfb => unimplemented!(),
       0xfc => unimplemented!(),
       0xfd => unimplemented!(),
-      0xfe => unimplemented!(),
+      0xfe => {
+        cp_a_n!(self.bump());
+        2
+      }
       0xff => unimplemented!(),
       _ => panic!("Invalid opcode"),
     }
