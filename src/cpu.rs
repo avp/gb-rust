@@ -173,10 +173,23 @@ impl CPU {
     macro_rules! cp_a_n {
       ($n:expr) => {{
         let a = self.regs.a;
-        self.regs.f == reg::N;
+        self.regs.f = reg::N;
         self.regs.f |= if a == $n {reg::Z} else {0};
         self.regs.f |= if (a & 0xf) < ($n & 0xf) {reg::H} else {0};
         self.regs.f |= if (a & 0xf) < ($n & 0xf) {reg::H} else {0};
+        1
+      }}
+    }
+
+    macro_rules! inc {
+      ($n:expr) => {{
+        let n = $n;
+        $n += 1;
+        self.regs.f = 0;
+        self.regs.f |= if n + 1 == 0 {reg::Z} else {0};
+        self.regs.f |= if n & 0xf == 0xf {reg::H} else {0};
+        // Preserve C.
+        self.regs.f |= if self.regs.c() {reg::C} else {0};
         1
       }}
     }
@@ -199,7 +212,7 @@ impl CPU {
       0x01 => ld_n_nn!(b, c),
       0x02 => ld_r1m_r2!(bc, a),
       0x03 => unimplemented!(),
-      0x04 => unimplemented!(),
+      0x04 => inc!(self.regs.b),
       0x05 => unimplemented!(),
       0x06 => ld_nn_n!(b),
       0x07 => unimplemented!(),
@@ -212,7 +225,7 @@ impl CPU {
       0x09 => unimplemented!(),
       0x0a => ld_r1_r2m!(a, bc),
       0x0b => unimplemented!(),
-      0x0c => unimplemented!(),
+      0x0c => inc!(self.regs.c),
       0x0d => unimplemented!(),
       0x0e => ld_nn_n!(c),
       0x0f => unimplemented!(),
@@ -221,7 +234,7 @@ impl CPU {
       0x11 => ld_n_nn!(d, e),
       0x12 => ld_r1m_r2!(de, a),
       0x13 => unimplemented!(),
-      0x14 => unimplemented!(),
+      0x14 => inc!(self.regs.d),
       0x15 => unimplemented!(),
       0x16 => ld_nn_n!(d),
       0x17 => unimplemented!(),
@@ -229,7 +242,7 @@ impl CPU {
       0x19 => unimplemented!(),
       0x1a => ld_r1_r2m!(a, de),
       0x1b => unimplemented!(),
-      0x1c => unimplemented!(),
+      0x1c => inc!(self.regs.e),
       0x1d => unimplemented!(),
       0x1e => ld_nn_n!(e),
       0x1f => unimplemented!(),
@@ -242,7 +255,7 @@ impl CPU {
         2
       }
       0x23 => unimplemented!(),
-      0x24 => unimplemented!(),
+      0x24 => inc!(self.regs.h),
       0x25 => unimplemented!(),
       0x26 => ld_nn_n!(h),
       0x27 => unimplemented!(),
@@ -254,7 +267,7 @@ impl CPU {
         2
       }
       0x2b => unimplemented!(),
-      0x2c => unimplemented!(),
+      0x2c => inc!(self.regs.l),
       0x2d => unimplemented!(),
       0x2e => ld_nn_n!(l),
       0x2f => unimplemented!(),
@@ -270,7 +283,14 @@ impl CPU {
         2
       }
       0x33 => unimplemented!(),
-      0x34 => unimplemented!(),
+      0x34 => {
+        let n = self.mem.rb(self.regs.hl());
+        let c = if self.regs.c() { reg::C } else { 0 };
+        self.mem.wb(self.regs.hl(), n + 1);
+        self.regs.f = if n + 1 == 0 { reg::Z } else { 0 } |
+          if n & 0xf == 0xf { reg::H } else { 0 } | c;
+        3
+      }
       0x35 => unimplemented!(),
       0x36 => {
         let n = self.bump();
@@ -286,7 +306,7 @@ impl CPU {
         2
       }
       0x3b => unimplemented!(),
-      0x3c => unimplemented!(),
+      0x3c => inc!(self.regs.a),
       0x3d => unimplemented!(),
       0x3e => {
         self.regs.a = self.bump();
