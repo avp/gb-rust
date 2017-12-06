@@ -206,6 +206,22 @@ impl CPU {
       }}
     }
 
+    macro_rules! add_hl_n {
+      ($n:expr) => {{
+        let hl = self.regs.hl();
+        let n = $n;
+        let res = hl + n;
+        let res32 = u32::from(hl) + u32::from(n);
+        let z = if self.regs.z() {reg::Z} else {0};
+        let n = 0;
+        let h = if res32 > 0xfff {reg::H} else {0};
+        let c = if res32 > 0xffff {reg::C} else {0};
+        self.regs.f = z | n | h | c;
+        self.regs.h = ((res & 0xff00) >> 8) as u8;
+        self.regs.l = (res & 0xff) as u8;
+        2
+      }}
+    }
 
     macro_rules! swap {
       ($reg:ident) => {{
@@ -235,7 +251,7 @@ impl CPU {
         self.mem.wb(nn, val);
         5
       }
-      0x09 => unimplemented!(),
+      0x09 => add_hl_n!(self.regs.bc()),
       0x0a => ld_r1_r2m!(a, bc),
       0x0b => unimplemented!(),
       0x0c => inc!(self.regs.c),
@@ -252,7 +268,7 @@ impl CPU {
       0x16 => ld_nn_n!(d),
       0x17 => unimplemented!(),
       0x18 => unimplemented!(),
-      0x19 => unimplemented!(),
+      0x19 => add_hl_n!(self.regs.de()),
       0x1a => ld_r1_r2m!(a, de),
       0x1b => unimplemented!(),
       0x1c => inc!(self.regs.e),
@@ -273,7 +289,7 @@ impl CPU {
       0x26 => ld_nn_n!(h),
       0x27 => unimplemented!(),
       0x28 => unimplemented!(),
-      0x29 => unimplemented!(),
+      0x29 => add_hl_n!(self.regs.hl()),
       0x2a => {
         ld_r1_r2m!(a, hl);
         self.regs.hl_inc();
@@ -319,7 +335,7 @@ impl CPU {
       }
       0x37 => unimplemented!(),
       0x38 => unimplemented!(),
-      0x39 => unimplemented!(),
+      0x39 => add_hl_n!(self.regs.sp),
       0x3a => {
         ld_r1_r2m!(a, hl);
         self.regs.hl_dec();
