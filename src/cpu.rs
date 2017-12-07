@@ -589,7 +589,21 @@ impl CPU {
         2
       }
       0xe7 => unimplemented!(),
-      0xe8 => unimplemented!(),
+      0xe8 => {
+        let sp = self.regs.sp;
+        // Add a signed 8-bit immediate to sp.
+        // This requires casting to i8, sign extending, and then back to u16.
+        let n = self.bump() as i8 as i16 as u16;
+        let res = sp + n;
+        // Sleight-of-hand to check the carry and half-carry flags
+        // and handle both negative and non-negative cases elegantly.
+        // Essentially spooky bit twiddling.
+        let tmp = n ^ res ^ sp;
+        self.regs.f = if tmp & 0x100 != 0 { reg::C } else { 0 } |
+          if tmp & 0x010 != 0 { reg::H } else { 0 };
+        self.regs.sp = res;
+        4
+      }
       0xe9 => unimplemented!(),
       0xea => {
         let nn = read_u16_le!();
