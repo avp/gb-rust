@@ -381,7 +381,11 @@ impl CPU {
         self.regs.a = self.bump();
         2
       }
-      0x3f => unimplemented!(),
+      0x3f => {
+        self.regs.f = (self.regs.f & reg::Z) |
+          if self.regs.c() { 0 } else { reg::C };
+        1
+      }
 
       0x40 => ld_r1_r2!(b, b),
       0x41 => ld_r1_r2!(b, c),
