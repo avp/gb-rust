@@ -11,6 +11,9 @@ pub struct CPU {
   /// Current clock.
   m: u32,
   t: u32,
+
+  halt: bool,
+  stop: bool,
 }
 
 
@@ -21,6 +24,8 @@ impl CPU {
       mem: Memory::new(),
       m: 0,
       t: 0,
+      halt: false,
+      stop: false,
     }
   }
 
@@ -281,7 +286,10 @@ impl CPU {
       0x0e => ld_nn_n!(c),
       0x0f => unimplemented!(),
 
-      0x10 => unimplemented!(),
+      0x10 => {
+        self.stop = true;
+        1
+      }
       0x11 => ld_n_nn!(d, e),
       0x12 => ld_r1m_r2!(de, a),
       0x13 => inc_nn!(d, e),
@@ -447,7 +455,10 @@ impl CPU {
       0x73 => ld_r1m_r2!(hl, e),
       0x74 => ld_r1m_r2!(hl, h),
       0x75 => ld_r1m_r2!(hl, l),
-      0x76 => unimplemented!(),
+      0x76 => {
+        self.halt = true;
+        1
+      }
       0x77 => ld_r1m_r2!(hl, a),
       0x78 => ld_r1_r2!(a, b),
       0x79 => ld_r1_r2!(a, c),
