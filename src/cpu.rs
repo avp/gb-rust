@@ -363,7 +363,10 @@ impl CPU {
         self.mem.wb(self.regs.hl(), n);
         3
       }
-      0x37 => unimplemented!(),
+      0x37 => {
+        self.regs.f = (self.regs.f & reg::Z) | reg::C;
+        1
+      }
       0x38 => unimplemented!(),
       0x39 => add_hl_n!(self.regs.sp),
       0x3a => {
