@@ -321,7 +321,12 @@ impl CPU {
       0x2c => inc!(self.regs.l),
       0x2d => dec!(self.regs.l),
       0x2e => ld_nn_n!(l),
-      0x2f => unimplemented!(),
+      0x2f => {
+        self.regs.a = !self.regs.a;
+        let f = self.regs.f;
+        self.regs.f = (f & reg::Z) | reg::N | reg::H | (f & reg::C);
+        1
+      }
 
       0x30 => unimplemented!(),
       0x31 => {
