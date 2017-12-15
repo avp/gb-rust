@@ -206,6 +206,28 @@ impl CPU {
       }}
     }
 
+    macro_rules! inc_nn {
+      ($h:ident, $l:ident) => {{
+        let h = self.regs.$h as u16;
+        let l = self.regs.$l as u16;
+        let n = ((h << 8) | l) + 1;
+        self.regs.h = ((n & 0xff00) >> 8) as u8;
+        self.regs.l = ((n & 0x00ff) >> 8) as u8;
+        2
+      }}
+    }
+    macro_rules! dec_nn {
+      ($h:ident, $l:ident) => {{
+        let h = self.regs.$h as u16;
+        let l = self.regs.$l as u16;
+        let n = ((h << 8) | l) - 1;
+        self.regs.h = ((n & 0xff00) >> 8) as u8;
+        self.regs.l = ((n & 0x00ff) >> 8) as u8;
+        2
+      }}
+    }
+
+
     macro_rules! add_hl_n {
       ($n:expr) => {{
         let hl = self.regs.hl();
@@ -240,7 +262,7 @@ impl CPU {
       0x00 => 1, // nop
       0x01 => ld_n_nn!(b, c),
       0x02 => ld_r1m_r2!(bc, a),
-      0x03 => unimplemented!(),
+      0x03 => inc_nn!(b, c),
       0x04 => inc!(self.regs.b),
       0x05 => dec!(self.regs.b),
       0x06 => ld_nn_n!(b),
@@ -253,7 +275,7 @@ impl CPU {
       }
       0x09 => add_hl_n!(self.regs.bc()),
       0x0a => ld_r1_r2m!(a, bc),
-      0x0b => unimplemented!(),
+      0x0b => dec_nn!(b, c),
       0x0c => inc!(self.regs.c),
       0x0d => dec!(self.regs.c),
       0x0e => ld_nn_n!(c),
@@ -262,7 +284,7 @@ impl CPU {
       0x10 => unimplemented!(),
       0x11 => ld_n_nn!(d, e),
       0x12 => ld_r1m_r2!(de, a),
-      0x13 => unimplemented!(),
+      0x13 => inc_nn!(d, e),
       0x14 => inc!(self.regs.d),
       0x15 => dec!(self.regs.d),
       0x16 => ld_nn_n!(d),
@@ -270,7 +292,7 @@ impl CPU {
       0x18 => unimplemented!(),
       0x19 => add_hl_n!(self.regs.de()),
       0x1a => ld_r1_r2m!(a, de),
-      0x1b => unimplemented!(),
+      0x1b => dec_nn!(d, e),
       0x1c => inc!(self.regs.e),
       0x1d => dec!(self.regs.e),
       0x1e => ld_nn_n!(e),
@@ -283,7 +305,7 @@ impl CPU {
         self.regs.hl_inc();
         2
       }
-      0x23 => unimplemented!(),
+      0x23 => inc_nn!(h, l),
       0x24 => inc!(self.regs.h),
       0x25 => dec!(self.regs.h),
       0x26 => ld_nn_n!(h),
@@ -295,7 +317,7 @@ impl CPU {
         self.regs.hl_inc();
         2
       }
-      0x2b => unimplemented!(),
+      0x2b => dec_nn!(h, l),
       0x2c => inc!(self.regs.l),
       0x2d => dec!(self.regs.l),
       0x2e => ld_nn_n!(l),
@@ -311,7 +333,10 @@ impl CPU {
         self.regs.hl_dec();
         2
       }
-      0x33 => unimplemented!(),
+      0x33 => {
+        self.regs.sp += 1;
+        2
+      }
       0x34 => {
         let n = self.mem.rb(self.regs.hl());
         let c = if self.regs.c() { reg::C } else { 0 };
@@ -341,7 +366,10 @@ impl CPU {
         self.regs.hl_dec();
         2
       }
-      0x3b => unimplemented!(),
+      0x3b => {
+        self.regs.sp -= 1;
+        2
+      }
       0x3c => inc!(self.regs.a),
       0x3d => dec!(self.regs.a),
       0x3e => {
