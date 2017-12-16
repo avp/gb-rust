@@ -271,7 +271,13 @@ impl CPU {
       0x04 => inc!(self.regs.b),
       0x05 => dec!(self.regs.b),
       0x06 => ld_nn_n!(b),
-      0x07 => unimplemented!(),
+      0x07 => {
+        let c = self.regs.a >> 7;
+        self.regs.a = (self.regs.a << 1) | c;
+        self.regs.f = if self.regs.a == 0 { reg::Z } else { 0 } |
+          if c == 1 { reg::C } else { 0 };
+        1
+      }
       0x08 => {
         let nn = read_u16_le!();
         let val = self.mem.rb(self.regs.sp);
@@ -284,7 +290,13 @@ impl CPU {
       0x0c => inc!(self.regs.c),
       0x0d => dec!(self.regs.c),
       0x0e => ld_nn_n!(c),
-      0x0f => unimplemented!(),
+      0x0f => {
+        let c = self.regs.a & 0x1;
+        self.regs.a = (self.regs.a >> 1) | (c << 7);
+        self.regs.f = if self.regs.a == 0 { reg::Z } else { 0 } |
+          if c == 1 { reg::C } else { 0 };
+        1
+      }
 
       0x10 => {
         self.stop = true;
@@ -296,7 +308,14 @@ impl CPU {
       0x14 => inc!(self.regs.d),
       0x15 => dec!(self.regs.d),
       0x16 => ld_nn_n!(d),
-      0x17 => unimplemented!(),
+      0x17 => {
+        let b7 = self.regs.a >> 7;
+        let c = if self.regs.c() { 1 } else { 0 };
+        self.regs.a = (self.regs.a << 1) | c;
+        self.regs.f = if self.regs.a == 0 { reg::Z } else { 0 } |
+          if b7 == 1 { reg::C } else { 0 };
+        1
+      }
       0x18 => unimplemented!(),
       0x19 => add_hl_n!(self.regs.de()),
       0x1a => ld_r1_r2m!(a, de),
@@ -304,7 +323,14 @@ impl CPU {
       0x1c => inc!(self.regs.e),
       0x1d => dec!(self.regs.e),
       0x1e => ld_nn_n!(e),
-      0x1f => unimplemented!(),
+      0x1f => {
+        let b0 = self.regs.a & 0x1;
+        let c = if self.regs.c() { 1 } else { 0 };
+        self.regs.a = (self.regs.a << 1) | (c << 7);
+        self.regs.f = if self.regs.a == 0 { reg::Z } else { 0 } |
+          if b0 == 1 { reg::C } else { 0 };
+        1
+      }
 
       0x20 => unimplemented!(),
       0x21 => ld_n_nn!(h, l),
