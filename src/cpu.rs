@@ -707,6 +707,25 @@ impl CPU {
 
   /// Run cb instruction.
   fn exec_cb(&mut self) -> u32 {
+    macro_rules! do_hl {
+      ($int:ident, $stmt:stmt, $time:expr) => {{
+        let mut $int = self.mem.rb(self.regs.hl());
+        $stmt;
+        self.mem.wb(self.regs.hl(), $int);
+        $time as u32
+      }}
+    }
+
+    macro_rules! rlc {
+      ($reg:expr, $time:expr) => {{
+        let c = $reg >> 7;
+        $reg = ($reg << 1) | c;
+        self.regs.f = if $reg == 0 { reg::Z } else { 0 } |
+          if c == 1 { reg::C } else { 0 };
+        $time as u32
+      }}
+    }
+
     macro_rules! swap {
       ($reg:ident) => {{
         let top = self.regs.$reg >> 4;
@@ -721,14 +740,14 @@ impl CPU {
     }
 
     match self.bump() {
-      0x00 => unimplemented!(),
-      0x01 => unimplemented!(),
-      0x02 => unimplemented!(),
-      0x03 => unimplemented!(),
-      0x04 => unimplemented!(),
-      0x05 => unimplemented!(),
-      0x06 => unimplemented!(),
-      0x07 => unimplemented!(),
+      0x00 => rlc!(self.regs.b, 2),
+      0x01 => rlc!(self.regs.c, 2),
+      0x02 => rlc!(self.regs.d, 2),
+      0x03 => rlc!(self.regs.e, 2),
+      0x04 => rlc!(self.regs.h, 2),
+      0x05 => rlc!(self.regs.l, 2),
+      0x06 => do_hl!(hl, rlc!(hl, 1), 4),
+      0x07 => rlc!(self.regs.a, 2),
       0x08 => unimplemented!(),
       0x09 => unimplemented!(),
       0x0a => unimplemented!(),
