@@ -765,6 +765,16 @@ impl CPU {
         $time as u32
       }}
     }
+    macro_rules! sra {
+      ($reg:expr, $time:expr) => {{
+        let b0 = $reg & 0x1;
+        // Sign extend.
+        $reg = (($reg as i8) >> 1) as u8;
+        self.regs.f = if $reg == 0 {reg::Z} else {0} |
+          if b0 == 1 { reg::C } else { 0 };
+        $time as u32
+      }}
+    }
 
     macro_rules! swap {
       ($reg:ident) => {{
@@ -787,7 +797,7 @@ impl CPU {
       0x04 => rlc!(self.regs.h, 2),
       0x05 => rlc!(self.regs.l, 2),
       0x06 => do_hl!(hl, rlc!(hl, 1), 4),
-      0x07 => rrc!(self.regs.a, 2),
+      0x07 => rlc!(self.regs.a, 2),
       0x08 => rrc!(self.regs.b, 2),
       0x09 => rrc!(self.regs.c, 2),
       0x0a => rrc!(self.regs.d, 2),
@@ -804,7 +814,7 @@ impl CPU {
       0x14 => rl!(self.regs.h, 2),
       0x15 => rl!(self.regs.l, 2),
       0x16 => do_hl!(hl, rl!(hl, 1), 4),
-      0x17 => rr!(self.regs.a, 2),
+      0x17 => rl!(self.regs.a, 2),
       0x18 => rr!(self.regs.b, 2),
       0x19 => rr!(self.regs.c, 2),
       0x1a => rr!(self.regs.d, 2),
@@ -814,22 +824,22 @@ impl CPU {
       0x1e => do_hl!(hl, rr!(hl, 1), 4),
       0x1f => rr!(self.regs.a, 2),
 
-      0x20 => unimplemented!(),
-      0x21 => unimplemented!(),
-      0x22 => unimplemented!(),
-      0x23 => unimplemented!(),
-      0x24 => unimplemented!(),
-      0x25 => unimplemented!(),
-      0x26 => unimplemented!(),
+      0x20 => sla!(self.regs.b, 2),
+      0x21 => sla!(self.regs.c, 2),
+      0x22 => sla!(self.regs.d, 2),
+      0x23 => sla!(self.regs.e, 2),
+      0x24 => sla!(self.regs.h, 2),
+      0x25 => sla!(self.regs.l, 2),
+      0x26 => do_hl!(hl, sla!(hl, 1), 4),
       0x27 => sla!(self.regs.a, 2),
-      0x28 => sla!(self.regs.b, 2),
-      0x29 => sla!(self.regs.c, 2),
-      0x2a => sla!(self.regs.d, 2),
-      0x2b => sla!(self.regs.e, 2),
-      0x2c => sla!(self.regs.h, 2),
-      0x2d => sla!(self.regs.l, 2),
-      0x2e => do_hl!(hl, sla!(hl, 1), 4),
-      0x2f => sla!(self.regs.a, 2),
+      0x28 => sra!(self.regs.b, 2),
+      0x29 => sra!(self.regs.c, 2),
+      0x2a => sra!(self.regs.d, 2),
+      0x2b => sra!(self.regs.e, 2),
+      0x2c => sra!(self.regs.h, 2),
+      0x2d => sra!(self.regs.l, 2),
+      0x2e => do_hl!(hl, sra!(hl, 1), 4),
+      0x2f => sra!(self.regs.a, 2),
 
       0x30 => swap!(b),
       0x31 => swap!(c),
