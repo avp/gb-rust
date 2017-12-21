@@ -736,6 +736,27 @@ impl CPU {
       }}
     }
 
+    macro_rules! rrc {
+      ($reg:expr, $time:expr) => {{
+        let c = $reg & 0x1;
+        $reg = ($reg >> 1) | (c << 7);
+        self.regs.f = if $reg == 0 { reg::Z } else { 0 } |
+          if c == 1 { reg::C } else { 0 };
+        $time as u32
+      }}
+    }
+    macro_rules! rr {
+      ($reg:expr, $time:expr) => {{
+        let b0 = $reg & 0x1;
+        let c = if self.regs.c() { 1 } else { 0 };
+        $reg = ($reg << 1) | (c << 7);
+        self.regs.f = if $reg == 0 { reg::Z } else { 0 } |
+          if b0 == 1 { reg::C } else { 0 };
+        $time as u32
+      }}
+    }
+
+
     macro_rules! swap {
       ($reg:ident) => {{
         let top = self.regs.$reg >> 4;
@@ -757,32 +778,32 @@ impl CPU {
       0x04 => rlc!(self.regs.h, 2),
       0x05 => rlc!(self.regs.l, 2),
       0x06 => do_hl!(hl, rlc!(hl, 1), 4),
-      0x07 => rl!(self.regs.a, 2),
-      0x08 => rl!(self.regs.b, 2),
-      0x09 => rl!(self.regs.c, 2),
-      0x0a => rl!(self.regs.d, 2),
-      0x0b => rl!(self.regs.e, 2),
-      0x0c => rl!(self.regs.h, 2),
-      0x0d => rl!(self.regs.l, 2),
-      0x0e => do_hl!(hl, rl!(hl, 1), 4),
-      0x0f => rl!(self.regs.a, 2),
+      0x07 => rrc!(self.regs.a, 2),
+      0x08 => rrc!(self.regs.b, 2),
+      0x09 => rrc!(self.regs.c, 2),
+      0x0a => rrc!(self.regs.d, 2),
+      0x0b => rrc!(self.regs.e, 2),
+      0x0c => rrc!(self.regs.h, 2),
+      0x0d => rrc!(self.regs.l, 2),
+      0x0e => do_hl!(hl, rrc!(hl, 1), 4),
+      0x0f => rrc!(self.regs.a, 2),
 
-      0x10 => unimplemented!(),
-      0x11 => unimplemented!(),
-      0x12 => unimplemented!(),
-      0x13 => unimplemented!(),
-      0x14 => unimplemented!(),
-      0x15 => unimplemented!(),
-      0x16 => unimplemented!(),
-      0x17 => unimplemented!(),
-      0x18 => unimplemented!(),
-      0x19 => unimplemented!(),
-      0x1a => unimplemented!(),
-      0x1b => unimplemented!(),
-      0x1c => unimplemented!(),
-      0x1d => unimplemented!(),
-      0x1e => unimplemented!(),
-      0x1f => unimplemented!(),
+      0x10 => rl!(self.regs.b, 2),
+      0x11 => rl!(self.regs.c, 2),
+      0x12 => rl!(self.regs.d, 2),
+      0x13 => rl!(self.regs.e, 2),
+      0x14 => rl!(self.regs.h, 2),
+      0x15 => rl!(self.regs.l, 2),
+      0x16 => do_hl!(hl, rl!(hl, 1), 4),
+      0x17 => rr!(self.regs.a, 2),
+      0x18 => rr!(self.regs.b, 2),
+      0x19 => rr!(self.regs.c, 2),
+      0x1a => rr!(self.regs.d, 2),
+      0x1b => rr!(self.regs.e, 2),
+      0x1c => rr!(self.regs.h, 2),
+      0x1d => rr!(self.regs.l, 2),
+      0x1e => do_hl!(hl, rr!(hl, 1), 4),
+      0x1f => rr!(self.regs.a, 2),
 
       0x20 => unimplemented!(),
       0x21 => unimplemented!(),
