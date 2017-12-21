@@ -725,6 +725,16 @@ impl CPU {
         $time as u32
       }}
     }
+    macro_rules! rl {
+      ($reg:expr, $time:expr) => {{
+        let b7 = $reg >> 7;
+        let c = if self.regs.c() { 1 } else { 0 };
+        $reg = ($reg << 1) | c;
+        self.regs.f = if $reg == 0 { reg::Z } else { 0 } |
+          if b7 == 1 { reg::C } else { 0 };
+        $time as u32
+      }}
+    }
 
     macro_rules! swap {
       ($reg:ident) => {{
@@ -747,15 +757,15 @@ impl CPU {
       0x04 => rlc!(self.regs.h, 2),
       0x05 => rlc!(self.regs.l, 2),
       0x06 => do_hl!(hl, rlc!(hl, 1), 4),
-      0x07 => rlc!(self.regs.a, 2),
-      0x08 => unimplemented!(),
-      0x09 => unimplemented!(),
-      0x0a => unimplemented!(),
-      0x0b => unimplemented!(),
-      0x0c => unimplemented!(),
-      0x0d => unimplemented!(),
-      0x0e => unimplemented!(),
-      0x0f => unimplemented!(),
+      0x07 => rl!(self.regs.a, 2),
+      0x08 => rl!(self.regs.b, 2),
+      0x09 => rl!(self.regs.c, 2),
+      0x0a => rl!(self.regs.d, 2),
+      0x0b => rl!(self.regs.e, 2),
+      0x0c => rl!(self.regs.h, 2),
+      0x0d => rl!(self.regs.l, 2),
+      0x0e => do_hl!(hl, rl!(hl, 1), 4),
+      0x0f => rl!(self.regs.a, 2),
 
       0x10 => unimplemented!(),
       0x11 => unimplemented!(),
