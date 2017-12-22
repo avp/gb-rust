@@ -1,12 +1,13 @@
 #![cfg_attr(feature = "cargo-clippy", allow(match_same_arms))]
 
-#[derive(Debug)]
+const WRAM_SIZE: usize = 8192;
+
 pub struct Memory {
   bios_mapped: bool,
 
   bios: Vec<u8>,
   rom: Vec<u8>,
-  wram: Vec<u8>,
+  wram: [u8; WRAM_SIZE],
   eram: Vec<u8>,
   zram: Vec<u8>,
 }
@@ -17,7 +18,7 @@ impl Memory {
       bios_mapped: false,
       bios: vec![],
       rom: vec![],
-      wram: vec![],
+      wram: [0; WRAM_SIZE],
       eram: vec![],
       zram: vec![],
     }

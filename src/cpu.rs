@@ -3,7 +3,6 @@ use mem::Memory;
 use reg;
 use reg::Registers;
 
-#[derive(Debug)]
 pub struct CPU {
   pub regs: Registers,
   pub mem: Memory,
@@ -15,7 +14,6 @@ pub struct CPU {
   halt: bool,
   stop: bool,
 }
-
 
 impl CPU {
   pub fn new() -> CPU {
@@ -1097,4 +1095,29 @@ impl CPU {
 }
 
 #[cfg(test)]
-mod tests {}
+mod tests {
+  use cpu::CPU;
+
+  fn init() -> CPU {
+    let mut cpu = CPU::new();
+    // Se the PC to start in WRAM.
+    cpu.regs.pc = 0xe000;
+    cpu
+  }
+
+  fn run(cpu: &mut CPU, opcode: u8, len: u16, time_expected: u32) {
+    let start = cpu.regs.pc;
+    cpu.mem.wb(cpu.regs.pc, opcode);
+    let time_actual = cpu.exec();
+    // Test time.
+    assert_eq!(time_actual, time_expected);
+    // Test that the PC was incremented.
+    assert_eq!(cpu.regs.pc, start + len);
+  }
+
+  #[test]
+  fn nop() {
+    let mut cpu = init();
+    run(&mut cpu, 0x00, 1, 1);
+  }
+}
