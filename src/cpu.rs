@@ -1120,4 +1120,24 @@ mod tests {
     let mut cpu = init();
     run(&mut cpu, 0x00, 1, 1);
   }
+
+  #[test]
+  fn ld_nn_n() {
+    macro_rules! run_test {
+      ($reg:ident, $opcode:expr) => {{
+        let mut cpu = init();
+        cpu.mem.wb(cpu.regs.pc + 1, 0x42);
+        let f = cpu.regs.f;
+        run(&mut cpu, $opcode, 2, 2);
+        assert_eq!(cpu.regs.f, f);
+        assert_eq!(cpu.regs.$reg, 0x42);
+      }}
+    }
+    run_test!(b, 0x06);
+    run_test!(c, 0x0e);
+    run_test!(d, 0x16);
+    run_test!(e, 0x1e);
+    run_test!(h, 0x26);
+    run_test!(l, 0x2e);
+  }
 }
