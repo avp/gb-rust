@@ -1,16 +1,7 @@
 #![cfg_attr(feature = "cargo-clippy", allow(match_same_arms))]
 
-const WRAM_SIZE: usize = 8192;
-
-pub struct Memory {
-  bios_mapped: bool,
-
-  bios: Vec<u8>,
-  rom: Vec<u8>,
-  wram: [u8; WRAM_SIZE],
-  eram: Vec<u8>,
-  zram: Vec<u8>,
-}
+use cpu::Memory;
+use cpu::WRAM_SIZE;
 
 impl Memory {
   pub fn new() -> Memory {
@@ -110,5 +101,14 @@ impl Memory {
   pub fn ww(&mut self, addr: u16, value: u16) {
     self.wb(addr, (value & 0xff) as u8);
     self.wb(addr + 1, ((value >> 8) & 0xff) as u8);
+  }
+
+  /// Write an arbitrary number of bytes to memory.
+  pub fn write(&mut self, addr: u16, values: &[u8]) {
+    let mut cur = addr;
+    for v in values {
+      self.wb(cur, *v);
+      cur += 1;
+    }
   }
 }

@@ -1,30 +1,9 @@
+use cpu::Registers;
+
 pub const Z: u8 = 0x80;
 pub const N: u8 = 0x40;
 pub const H: u8 = 0x20;
 pub const C: u8 = 0x10;
-
-#[derive(Debug, Eq, PartialEq)]
-pub struct Registers {
-  /// General-purpose registers.
-  pub a: u8,
-  pub b: u8,
-  pub c: u8,
-  pub d: u8,
-  pub e: u8,
-  pub f: u8, // Flag register.
-  pub h: u8,
-  pub l: u8,
-
-  /// Program counter.
-  pub pc: u16,
-
-  /// Stack pointer.
-  pub sp: u16,
-
-  /// Last Clock.
-  m: u32,
-  t: u32,
-}
 
 impl Registers {
   pub fn new() -> Registers {
