@@ -4,3 +4,5 @@ version = "0.1.0"
 authors = ["Aakash Patel <aakpat6@gmail.com>"]
 
 [dependencies]
+glium = "0.19.0"
+rand = "0.4.1"
