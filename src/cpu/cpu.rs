@@ -299,6 +299,23 @@ impl CPU {
       }}
     }
 
+    macro_rules! ret {
+      () => {{
+        self.regs.pc = self.mem.rw(self.regs.sp);
+        self.regs.sp += 2;
+        2
+      }}
+    }
+    macro_rules! retc {
+      ($e:expr) => {{
+        if $e {
+          ret!()
+        } else {
+          8
+        }
+      }}
+    }
+
     match self.bump() {
       0x00 => 1, // nop
       0x01 => ld_n_nn!(b, c),
@@ -623,7 +640,7 @@ impl CPU {
       }
       0xbf => cp_a_n!(self.regs.a),
 
-      0xc0 => unimplemented!(),
+      0xc0 => retc!(!self.regs.z()),
       0xc1 => pop!(b, c),
       0xc2 => jpc!(!self.regs.z()),
       0xc3 => jp!(),
@@ -634,8 +651,8 @@ impl CPU {
         2
       }
       0xc7 => rst!(0x00),
-      0xc8 => unimplemented!(),
-      0xc9 => unimplemented!(),
+      0xc8 => retc!(self.regs.z()),
+      0xc9 => ret!(),
       0xca => {
         if self.regs.z() {
           self.regs.pc = read_u16_le!();
@@ -651,7 +668,7 @@ impl CPU {
       }
       0xcf => rst!(0x08),
 
-      0xd0 => unimplemented!(),
+      0xd0 => retc!(!self.regs.c()),
       0xd1 => pop!(d, e),
       0xd2 => jpc!(!self.regs.c()),
       0xd3 => unimplemented!(),
@@ -662,8 +679,11 @@ impl CPU {
         2
       }
       0xd7 => rst!(0x10),
-      0xd8 => unimplemented!(),
-      0xd9 => unimplemented!(),
+      0xd8 => retc!(self.regs.c()),
+      0xd9 => {
+        // TODO: Enable interrupts.
+        ret!()
+      }
       0xda => jpc!(self.regs.c()),
       0xdb => unimplemented!(),
       0xdc => callc!(self.regs.c()),
