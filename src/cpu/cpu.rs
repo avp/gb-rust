@@ -236,6 +236,41 @@ impl CPU {
       }}
     }
 
+    macro_rules! jp {
+      () => {{
+        self.regs.pc = read_u16_le!();
+        3
+      }}
+    }
+    macro_rules! jpc {
+      ($e:expr) => {{
+        if $e {
+          jp!()
+        } else {
+          self.regs.pc += 2;
+          3
+        }
+      }}
+    }
+
+    macro_rules! jr {
+      () => {{
+        self.regs.pc += self.bump() as u16;
+        2
+      }}
+    }
+    macro_rules! jrc {
+      ($e:expr) => {{
+        if $e {
+          jr!()
+        } else {
+          self.regs.pc += 1;
+          2
+        }
+      }}
+    }
+
+
     macro_rules! call {
       () => {{
         self.regs.sp -= 2;
@@ -308,10 +343,7 @@ impl CPU {
           if b7 == 1 { reg::C } else { 0 };
         1
       }
-      0x18 => {
-        self.regs.pc += self.bump() as u16;
-        2
-      }
+      0x18 => jr!(),
       0x19 => add_hl_n!(self.regs.de()),
       0x1a => ld_r1_r2m!(a, de),
       0x1b => dec_nn!(d, e),
@@ -327,12 +359,7 @@ impl CPU {
         1
       }
 
-      0x20 => {
-        if !self.regs.z() {
-          self.regs.pc += self.bump() as u16;
-        }
-        2
-      }
+      0x20 => jrc!(!self.regs.z()),
       0x21 => ld_n_nn!(h, l),
       0x22 => {
         ld_r1m_r2!(hl, a);
@@ -344,12 +371,7 @@ impl CPU {
       0x25 => dec!(self.regs.h),
       0x26 => ld_nn_n!(h),
       0x27 => unimplemented!(),
-      0x28 => {
-        if self.regs.z() {
-          self.regs.pc += self.bump() as u16;
-        }
-        2
-      }
+      0x28 => jrc!(self.regs.z()),
       0x29 => add_hl_n!(self.regs.hl()),
       0x2a => {
         ld_r1_r2m!(a, hl);
@@ -367,12 +389,7 @@ impl CPU {
         1
       }
 
-      0x30 => {
-        if !self.regs.c() {
-          self.regs.pc += self.bump() as u16;
-        }
-        2
-      }
+      0x30 => jrc!(!self.regs.c()),
       0x31 => {
         self.regs.sp = read_u16_le!();
         3
@@ -411,12 +428,7 @@ impl CPU {
         self.regs.f = (self.regs.f & reg::Z) | reg::C;
         1
       }
-      0x38 => {
-        if self.regs.c() {
-          self.regs.pc += self.bump() as u16;
-        }
-        2
-      }
+      0x38 => jrc!(self.regs.c()),
       0x39 => add_hl_n!(self.regs.sp),
       0x3a => {
         ld_r1_r2m!(a, hl);
@@ -604,17 +616,9 @@ impl CPU {
 
       0xc0 => unimplemented!(),
       0xc1 => pop!(b, c),
-      0xc2 => {
-        if !self.regs.z() {
-          self.regs.pc = read_u16_le!();
-        }
-        3
-      }
-      0xc3 => {
-        self.regs.pc = read_u16_le!();
-        3
-      }
-      0xc4 => callc!(!self.regs.z()),
+      0xc2 => jpc!(!self.regs.z()),
+      0xc3 => jp!(),
+      0xc4 => jpc!(self.regs.z()),
       0xc5 => push!(b, c),
       0xc6 => {
         add_a_n!(self.bump());
@@ -640,12 +644,7 @@ impl CPU {
 
       0xd0 => unimplemented!(),
       0xd1 => pop!(d, e),
-      0xd2 => {
-        if !self.regs.c() {
-          self.regs.pc = read_u16_le!();
-        }
-        3
-      }
+      0xd2 => jpc!(!self.regs.c()),
       0xd3 => unimplemented!(),
       0xd4 => callc!(!self.regs.c()),
       0xd5 => push!(d, e),
@@ -656,12 +655,7 @@ impl CPU {
       0xd7 => unimplemented!(),
       0xd8 => unimplemented!(),
       0xd9 => unimplemented!(),
-      0xda => {
-        if self.regs.c() {
-          self.regs.pc = read_u16_le!();
-        }
-        3
-      }
+      0xda => jpc!(self.regs.c()),
       0xdb => unimplemented!(),
       0xdc => callc!(self.regs.c()),
       0xdd => unimplemented!(),
