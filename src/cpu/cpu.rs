@@ -236,6 +236,25 @@ impl CPU {
       }}
     }
 
+    macro_rules! call {
+      () => {{
+        self.regs.sp -= 2;
+        self.mem.ww(self.regs.sp, self.regs.pc + 2);
+        self.regs.pc = read_u16_le!();
+        3
+      }}
+    }
+    macro_rules! callc {
+      ($e:expr) => {{
+        if $e {
+          call!()
+        } else {
+          self.regs.pc += 2;
+          3
+        }
+      }}
+    }
+
     match self.bump() {
       0x00 => 1, // nop
       0x01 => ld_n_nn!(b, c),
@@ -595,7 +614,7 @@ impl CPU {
         self.regs.pc = read_u16_le!();
         3
       }
-      0xc4 => unimplemented!(),
+      0xc4 => callc!(!self.regs.z()),
       0xc5 => push!(b, c),
       0xc6 => {
         add_a_n!(self.bump());
@@ -611,8 +630,8 @@ impl CPU {
         3
       }
       0xcb => self.exec_cb(),
-      0xcc => unimplemented!(),
-      0xcd => unimplemented!(),
+      0xcc => callc!(self.regs.z()),
+      0xcd => call!(),
       0xce => {
         adc_a_n!(self.bump());
         2
@@ -628,7 +647,7 @@ impl CPU {
         3
       }
       0xd3 => unimplemented!(),
-      0xd4 => unimplemented!(),
+      0xd4 => callc!(!self.regs.c()),
       0xd5 => push!(d, e),
       0xd6 => {
         sub_a_n!(self.bump());
@@ -644,7 +663,7 @@ impl CPU {
         3
       }
       0xdb => unimplemented!(),
-      0xdc => unimplemented!(),
+      0xdc => callc!(self.regs.c()),
       0xdd => unimplemented!(),
       0xde => unimplemented!(),
       0xdf => unimplemented!(),
