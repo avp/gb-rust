@@ -289,7 +289,10 @@ impl CPU {
           if b7 == 1 { reg::C } else { 0 };
         1
       }
-      0x18 => unimplemented!(),
+      0x18 => {
+        self.regs.pc += self.bump() as u16;
+        2
+      }
       0x19 => add_hl_n!(self.regs.de()),
       0x1a => ld_r1_r2m!(a, de),
       0x1b => dec_nn!(d, e),
@@ -305,7 +308,12 @@ impl CPU {
         1
       }
 
-      0x20 => unimplemented!(),
+      0x20 => {
+        if !self.regs.z() {
+          self.regs.pc += self.bump() as u16;
+        }
+        2
+      }
       0x21 => ld_n_nn!(h, l),
       0x22 => {
         ld_r1m_r2!(hl, a);
@@ -317,7 +325,12 @@ impl CPU {
       0x25 => dec!(self.regs.h),
       0x26 => ld_nn_n!(h),
       0x27 => unimplemented!(),
-      0x28 => unimplemented!(),
+      0x28 => {
+        if self.regs.z() {
+          self.regs.pc += self.bump() as u16;
+        }
+        2
+      }
       0x29 => add_hl_n!(self.regs.hl()),
       0x2a => {
         ld_r1_r2m!(a, hl);
@@ -335,7 +348,12 @@ impl CPU {
         1
       }
 
-      0x30 => unimplemented!(),
+      0x30 => {
+        if !self.regs.c() {
+          self.regs.pc += self.bump() as u16;
+        }
+        2
+      }
       0x31 => {
         self.regs.sp = read_u16_le!();
         3
@@ -374,7 +392,12 @@ impl CPU {
         self.regs.f = (self.regs.f & reg::Z) | reg::C;
         1
       }
-      0x38 => unimplemented!(),
+      0x38 => {
+        if self.regs.c() {
+          self.regs.pc += self.bump() as u16;
+        }
+        2
+      }
       0x39 => add_hl_n!(self.regs.sp),
       0x3a => {
         ld_r1_r2m!(a, hl);
@@ -562,8 +585,16 @@ impl CPU {
 
       0xc0 => unimplemented!(),
       0xc1 => pop!(b, c),
-      0xc2 => unimplemented!(),
-      0xc3 => unimplemented!(),
+      0xc2 => {
+        if !self.regs.z() {
+          self.regs.pc = read_u16_le!();
+        }
+        3
+      }
+      0xc3 => {
+        self.regs.pc = read_u16_le!();
+        3
+      }
       0xc4 => unimplemented!(),
       0xc5 => push!(b, c),
       0xc6 => {
@@ -573,7 +604,12 @@ impl CPU {
       0xc7 => unimplemented!(),
       0xc8 => unimplemented!(),
       0xc9 => unimplemented!(),
-      0xca => unimplemented!(),
+      0xca => {
+        if self.regs.z() {
+          self.regs.pc = read_u16_le!();
+        }
+        3
+      }
       0xcb => self.exec_cb(),
       0xcc => unimplemented!(),
       0xcd => unimplemented!(),
@@ -585,7 +621,12 @@ impl CPU {
 
       0xd0 => unimplemented!(),
       0xd1 => pop!(d, e),
-      0xd2 => unimplemented!(),
+      0xd2 => {
+        if !self.regs.c() {
+          self.regs.pc = read_u16_le!();
+        }
+        3
+      }
       0xd3 => unimplemented!(),
       0xd4 => unimplemented!(),
       0xd5 => push!(d, e),
@@ -596,7 +637,12 @@ impl CPU {
       0xd7 => unimplemented!(),
       0xd8 => unimplemented!(),
       0xd9 => unimplemented!(),
-      0xda => unimplemented!(),
+      0xda => {
+        if self.regs.c() {
+          self.regs.pc = read_u16_le!();
+        }
+        3
+      }
       0xdb => unimplemented!(),
       0xdc => unimplemented!(),
       0xdd => unimplemented!(),
@@ -636,7 +682,10 @@ impl CPU {
         self.regs.sp = res;
         4
       }
-      0xe9 => unimplemented!(),
+      0xe9 => {
+        self.regs.pc = self.regs.hl();
+        1
+      }
       0xea => {
         let nn = read_u16_le!();
         self.mem.wb(nn, self.regs.a);
