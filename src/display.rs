@@ -50,13 +50,13 @@ impl Display {
 
   pub fn redraw(&self) {
     let image = glium::texture::RawImage2d::from_raw_rgba_reversed(
-      &self.gpu.to_vec(),
+      &self.gpu.pixels,
       (WIDTH, HEIGHT),
     );
 
     let texture = glium::Texture2d::new(&self.display, image).unwrap();
 
-    let dest_rect = glium::BlitTarget {
+    static DEST_RECT: glium::BlitTarget = glium::BlitTarget {
       left: 0,
       bottom: 0,
       width: WIDTH as i32,
@@ -65,7 +65,7 @@ impl Display {
 
     texture.as_surface().blit_whole_color_to(
       &self.dest_texture.as_surface(),
-      &dest_rect,
+      &DEST_RECT,
       glium::uniforms::MagnifySamplerFilter::Linear,
     );
 
