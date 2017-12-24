@@ -290,6 +290,15 @@ impl CPU {
       }}
     }
 
+    macro_rules! rst {
+      ($e:expr) => {{
+        self.regs.sp -= 2;
+        self.mem.ww(self.regs.sp, self.regs.pc);
+        self.regs.pc = $e;
+        8
+      }}
+    }
+
     match self.bump() {
       0x00 => 1, // nop
       0x01 => ld_n_nn!(b, c),
@@ -624,7 +633,7 @@ impl CPU {
         add_a_n!(self.bump());
         2
       }
-      0xc7 => unimplemented!(),
+      0xc7 => rst!(0x00),
       0xc8 => unimplemented!(),
       0xc9 => unimplemented!(),
       0xca => {
@@ -640,7 +649,7 @@ impl CPU {
         adc_a_n!(self.bump());
         2
       }
-      0xcf => unimplemented!(),
+      0xcf => rst!(0x08),
 
       0xd0 => unimplemented!(),
       0xd1 => pop!(d, e),
@@ -652,7 +661,7 @@ impl CPU {
         sub_a_n!(self.bump());
         2
       }
-      0xd7 => unimplemented!(),
+      0xd7 => rst!(0x10),
       0xd8 => unimplemented!(),
       0xd9 => unimplemented!(),
       0xda => jpc!(self.regs.c()),
@@ -660,7 +669,7 @@ impl CPU {
       0xdc => callc!(self.regs.c()),
       0xdd => unimplemented!(),
       0xde => unimplemented!(),
-      0xdf => unimplemented!(),
+      0xdf => rst!(0x18),
 
       0xe0 => {
         let n = self.bump();
@@ -679,7 +688,7 @@ impl CPU {
         and_a_n!(self.bump());
         2
       }
-      0xe7 => unimplemented!(),
+      0xe7 => rst!(0x20),
       0xe8 => {
         let sp = self.regs.sp;
         // Add a signed 8-bit immediate to sp.
@@ -711,7 +720,7 @@ impl CPU {
         xor_a_n!(self.bump());
         2
       }
-      0xef => unimplemented!(),
+      0xef => rst!(0x28),
 
       0xf0 => {
         let n = self.bump();
@@ -730,7 +739,7 @@ impl CPU {
         or_a_n!(self.bump());
         2
       }
-      0xf7 => unimplemented!(),
+      0xf7 => rst!(0x30),
       0xf8 => unimplemented!(),
       0xf9 => {
         self.regs.sp = self.regs.hl();
@@ -748,7 +757,7 @@ impl CPU {
         cp_a_n!(self.bump());
         2
       }
-      0xff => unimplemented!(),
+      0xff => rst!(0x38),
       _ => panic!("Invalid opcode"),
     }
   }
