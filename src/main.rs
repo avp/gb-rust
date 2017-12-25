@@ -35,7 +35,7 @@ fn run(_: cpu::CPU, mut display: display::Display) {
     });
 
     display.redraw();
-    display.gpu.step();
+    display.gpu.step(4);
 
     thread::sleep(time::Duration::from_millis(100));
   }
