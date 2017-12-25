@@ -1,12 +1,8 @@
 /// RGBA Color.
-pub type RGBAColor = [u8; 4];
+pub type RGBAColor = (u8, u8, u8, u8);
 
-const COLORS: [RGBAColor; 4] = [
-  [255, 255, 255, 255],
-  [192, 192, 192, 255],
-  [96, 96, 96, 255],
-  [0, 0, 0, 0],
-];
+/// Map of GB color codes to grayscale values.
+const COLORS: [u8; 4] = [255, 192, 96, 0];
 
 pub const HEIGHT: usize = 144;
 pub const WIDTH: usize = 160;
@@ -26,7 +22,7 @@ enum Mode {
 
 pub struct GPU {
   pub frame: Box<Frame>,
-  render: Box<Frame>,
+  render: Box<[u8; WIDTH * HEIGHT]>,
 
   pub vram: Vec<u8>,
   pub oam: Vec<u8>,
@@ -40,7 +36,7 @@ impl GPU {
   pub fn new() -> GPU {
     GPU {
       frame: Box::new([255; 4 * WIDTH * HEIGHT]),
-      render: Box::new([255; 4 * WIDTH * HEIGHT]),
+      render: Box::new([0; WIDTH * HEIGHT]),
 
       vram: vec![0; VRAM_SIZE],
       oam: vec![0; OAM_SIZE],
@@ -48,12 +44,6 @@ impl GPU {
       mode: Mode::HBlank,
       mode_clock: 0,
       line: 0,
-    }
-  }
-
-  fn lighten(&mut self) {
-    for value in self.render.iter_mut() {
-      *value = if *value == 255 { 0 } else { *value + 1 };
     }
   }
 
@@ -74,7 +64,7 @@ impl GPU {
           self.mode_clock = 0;
           self.mode = Mode::HBlank;
 
-          self.renderscan();
+          self.render_line();
         }
       }
       Mode::HBlank => {
@@ -83,8 +73,10 @@ impl GPU {
           self.line += 1;
           if self.line == HEIGHT - 1 {
             self.mode = Mode::VBlank;
-            self.frame = self.render.clone();
+            self.render_frame();
             return true;
+          } else {
+            self.mode = Mode::OAMRead;
           }
         }
       }
@@ -103,7 +95,35 @@ impl GPU {
     false
   }
 
-  fn renderscan(&mut self) {
-    self.lighten();
+  /// Get the value of the pixel at (row, col).
+  fn get(&self, row: usize, col: usize) -> u8 {
+    self.render[row * WIDTH + col]
+  }
+
+  /// Set the value of the pixel at (row, col).
+  fn set(&mut self, row: usize, col: usize, value: u8) {
+    assert!(value <= 3);
+    self.render[row * WIDTH + col] = value;
+  }
+
+  fn render_line(&mut self) {
+    let row = self.line;
+    for col in 0..WIDTH {
+      let val = self.get(row, col);
+      let new = if val == 3 { 0 } else { val + 1 };
+      self.set(row, col, new);
+    }
+  }
+
+  fn render_frame(&mut self) {
+    for i in 0..(WIDTH * HEIGHT) {
+      let color = self.render[i] as usize;
+      let j = i * 4;
+      self.frame[j] = COLORS[color];
+      self.frame[j + 1] = COLORS[color];
+      self.frame[j + 2] = COLORS[color];
+      // Full alpha value.
+      self.frame[j + 3] = 255;
+    }
   }
 }
