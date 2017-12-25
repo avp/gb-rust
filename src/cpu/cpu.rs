@@ -15,6 +15,16 @@ impl CPU {
     }
   }
 
+  /// Run one instruction.
+  /// Increment m and t to account for the time taken by the clock.
+  pub fn step(&mut self) {
+    let m = self.exec();
+    self.regs.m = m;
+    self.regs.t = 4 * m;
+    self.m += self.regs.m;
+    self.t += self.regs.t;
+  }
+
   /// Return the next byte at the program counter,
   /// and increment the program counter.
   fn bump(&mut self) -> u8 {
@@ -25,7 +35,7 @@ impl CPU {
 
   /// Execute the next opcode.
   /// Return the m-time taken to run that opcode.
-  pub fn exec(&mut self) -> u32 {
+  fn exec(&mut self) -> u32 {
     macro_rules! read_u16_le {
       () => {{
         let a = self.bump();

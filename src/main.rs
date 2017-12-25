@@ -12,8 +12,15 @@ mod gpu;
 mod display;
 
 fn main() {
-  let mut display = display::Display::new();
+  let cpu = cpu::CPU::new();
+  let display = display::Display::new();
+
+  run(cpu, display);
+}
+
+fn run(_: cpu::CPU, mut display: display::Display) {
   let mut running = true;
+
   while running {
     display.events_loop.poll_events(|event| match event {
       glutin::Event::WindowEvent { event, .. } => {
@@ -26,6 +33,7 @@ fn main() {
       }
       _ => (),
     });
+
     display.redraw();
     display.gpu.step();
 

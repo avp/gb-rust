@@ -6,6 +6,7 @@ use gpu;
 
 const WIDTH: u32 = gpu::WIDTH as u32;
 const HEIGHT: u32 = gpu::HEIGHT as u32;
+const WINDOW_SCALE: u32 = 4;
 
 pub struct Display {
   pub events_loop: glutin::EventsLoop,
@@ -19,7 +20,7 @@ impl Display {
   pub fn new() -> Display {
     let events_loop = glutin::EventsLoop::new();
     let window = glutin::WindowBuilder::new()
-      .with_dimensions(WIDTH * 2, HEIGHT * 2)
+      .with_dimensions(WIDTH * WINDOW_SCALE, HEIGHT * WINDOW_SCALE)
       .with_title("GB Rust");
     let context = glutin::ContextBuilder::new();
 
