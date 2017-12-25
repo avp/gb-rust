@@ -10,7 +10,8 @@ fn init() -> CPU {
 fn run(cpu: &mut CPU, opcode: u8, len: u16, time_expected: u32) {
   let start = cpu.regs.pc;
   cpu.mem.wb(cpu.regs.pc, opcode);
-  let time_actual = cpu.exec();
+  cpu.step();
+  let time_actual = cpu.regs.m;
   // Test time.
   assert_eq!(time_actual, time_expected);
   // Test that the PC was incremented.
