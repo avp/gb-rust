@@ -49,9 +49,9 @@ impl Display {
     }
   }
 
-  pub fn redraw(&self) {
+  pub fn redraw(&self, frame: &gpu::Frame) {
     let image = glium::texture::RawImage2d::from_raw_rgba_reversed(
-      &self.gpu.pixels,
+      frame,
       (WIDTH, HEIGHT),
     );
 

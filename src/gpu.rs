@@ -18,6 +18,9 @@ pub const WIDTH: usize = 160;
 pub const VRAM_SIZE: usize = 0x2000;
 pub const OAM_SIZE: usize = 0xa0;
 
+pub type Frame = [f32; 4 * WIDTH * HEIGHT];
+
+#[derive(Debug)]
 enum Mode {
   OAMRead = 2,
   VRAMRead = 3,
@@ -26,7 +29,8 @@ enum Mode {
 }
 
 pub struct GPU {
-  pub pixels: [f32; 4 * WIDTH * HEIGHT],
+  pub frame: Box<Frame>,
+  render: Box<Frame>,
 
   pub vram: Vec<u8>,
   pub oam: Vec<u8>,
@@ -39,7 +43,8 @@ pub struct GPU {
 impl GPU {
   pub fn new() -> GPU {
     GPU {
-      pixels: [1.0; 4 * WIDTH * HEIGHT],
+      frame: Box::new([1.0; 4 * WIDTH * HEIGHT]),
+      render: Box::new([1.0; 4 * WIDTH * HEIGHT]),
 
       vram: vec![0; VRAM_SIZE],
       oam: vec![0; OAM_SIZE],
@@ -52,14 +57,15 @@ impl GPU {
 
   fn randomize(&mut self) {
     let mut rng = rand::thread_rng();
-    for value in self.pixels.iter_mut() {
+    for value in self.render.iter_mut() {
       *value = rng.gen::<f32>();
     }
   }
 
-  pub fn step(&mut self, t: u32) {
+  /// Step the GPU by t cycles.
+  /// Return true if the display must be redrawn.
+  pub fn step(&mut self, t: u32) -> bool {
     self.mode_clock += t;
-    self.randomize();
 
     match self.mode {
       Mode::OAMRead => {
@@ -82,7 +88,9 @@ impl GPU {
           self.line += 1;
           if self.line == HEIGHT - 1 {
             self.mode = Mode::VBlank;
-            // TODO: Redraw screen here.
+            self.frame = self.render.clone();
+            println!("frame");
+            return true;
           }
         }
       }
@@ -98,7 +106,10 @@ impl GPU {
         }
       }
     }
+    false
   }
 
-  fn renderscan(&mut self) {}
+  fn renderscan(&mut self) {
+    self.randomize();
+  }
 }

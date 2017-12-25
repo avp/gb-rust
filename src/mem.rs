@@ -13,7 +13,7 @@ pub struct Memory {
   eram: Vec<u8>,
   zram: Vec<u8>,
 
-  gpu: Box<gpu::GPU>,
+  pub gpu: Box<gpu::GPU>,
 }
 
 impl Memory {

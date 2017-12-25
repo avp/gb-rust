@@ -5,8 +5,6 @@
 extern crate glium;
 use self::glium::glutin;
 
-use std::{thread, time};
-
 mod cpu;
 mod mem;
 mod gpu;
@@ -20,7 +18,7 @@ fn main() {
   run(cpu, mem, display);
 }
 
-fn run(_: cpu::CPU, _: mem::Memory, mut display: display::Display) {
+fn run(_: cpu::CPU, mut mem: mem::Memory, mut display: display::Display) {
   let mut running = true;
 
   while running {
@@ -36,9 +34,9 @@ fn run(_: cpu::CPU, _: mem::Memory, mut display: display::Display) {
       _ => (),
     });
 
-    display.redraw();
-    display.gpu.step(4);
-
-    thread::sleep(time::Duration::from_millis(100));
+    let do_render = mem.gpu.step(4);
+    if do_render {
+      display.redraw(&*mem.gpu.frame);
+    }
   }
 }
