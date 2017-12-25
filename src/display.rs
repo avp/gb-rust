@@ -10,7 +10,6 @@ const WINDOW_SCALE: u32 = 4;
 
 pub struct Display {
   pub events_loop: glutin::EventsLoop,
-  pub gpu: gpu::GPU,
 
   display: glium::Display,
   dest_texture: glium::Texture2d,
@@ -28,7 +27,7 @@ impl Display {
 
     let dest_texture = glium::Texture2d::empty_with_format(
       &display,
-      glium::texture::UncompressedFloatFormat::F32F32F32F32,
+      glium::texture::UncompressedFloatFormat::U8U8U8U8,
       glium::texture::MipmapsOption::NoMipmap,
       WIDTH,
       HEIGHT,
@@ -44,8 +43,6 @@ impl Display {
 
       display: display,
       dest_texture: dest_texture,
-
-      gpu: gpu::GPU::new(),
     }
   }
 

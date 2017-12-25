@@ -1,16 +1,12 @@
-extern crate rand;
-use self::rand::Rng;
-
 /// RGBA Color.
-pub type RGBAColor = [f32; 4];
+pub type RGBAColor = [u8; 4];
 
-const COLORS: [RGBAColor; 4] =
-  [
-    [1.0, 1.0, 1.0, 1.0],
-    [192.0 / 255.0, 192.0 / 255.0, 192.0 / 255.0, 1.0],
-    [96.0 / 255.0, 96.0 / 255.0, 96.0 / 255.0, 1.0],
-    [0.0, 0.0, 0.0, 0.0],
-  ];
+const COLORS: [RGBAColor; 4] = [
+  [255, 255, 255, 255],
+  [192, 192, 192, 255],
+  [96, 96, 96, 255],
+  [0, 0, 0, 0],
+];
 
 pub const HEIGHT: usize = 144;
 pub const WIDTH: usize = 160;
@@ -18,7 +14,7 @@ pub const WIDTH: usize = 160;
 pub const VRAM_SIZE: usize = 0x2000;
 pub const OAM_SIZE: usize = 0xa0;
 
-pub type Frame = [f32; 4 * WIDTH * HEIGHT];
+pub type Frame = [u8; 4 * WIDTH * HEIGHT];
 
 #[derive(Debug)]
 enum Mode {
@@ -43,8 +39,8 @@ pub struct GPU {
 impl GPU {
   pub fn new() -> GPU {
     GPU {
-      frame: Box::new([1.0; 4 * WIDTH * HEIGHT]),
-      render: Box::new([1.0; 4 * WIDTH * HEIGHT]),
+      frame: Box::new([255; 4 * WIDTH * HEIGHT]),
+      render: Box::new([255; 4 * WIDTH * HEIGHT]),
 
       vram: vec![0; VRAM_SIZE],
       oam: vec![0; OAM_SIZE],
@@ -55,10 +51,9 @@ impl GPU {
     }
   }
 
-  fn randomize(&mut self) {
-    let mut rng = rand::thread_rng();
+  fn lighten(&mut self) {
     for value in self.render.iter_mut() {
-      *value = rng.gen::<f32>();
+      *value = if *value == 255 { 0 } else { *value + 1 };
     }
   }
 
@@ -89,7 +84,6 @@ impl GPU {
           if self.line == HEIGHT - 1 {
             self.mode = Mode::VBlank;
             self.frame = self.render.clone();
-            println!("frame");
             return true;
           }
         }
@@ -110,6 +104,6 @@ impl GPU {
   }
 
   fn renderscan(&mut self) {
-    self.randomize();
+    self.lighten();
   }
 }
