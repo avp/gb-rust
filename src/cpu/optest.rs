@@ -1,16 +1,24 @@
 use cpu::CPU;
+use mem::Memory;
 
-fn init() -> CPU {
+fn init() -> (CPU, Memory) {
   let mut cpu = CPU::new();
+  let mem = Memory::new();
   // Se the PC to start in WRAM.
   cpu.regs.pc = 0xe000;
-  cpu
+  (cpu, mem)
 }
 
-fn run(cpu: &mut CPU, opcode: u8, len: u16, time_expected: u32) {
+fn run(
+  cpu: &mut CPU,
+  mem: &mut Memory,
+  opcode: u8,
+  len: u16,
+  time_expected: u32,
+) {
   let start = cpu.regs.pc;
-  cpu.mem.wb(cpu.regs.pc, opcode);
-  cpu.step();
+  mem.wb(cpu.regs.pc, opcode);
+  cpu.step(mem);
   let time_actual = cpu.regs.m;
   // Test time.
   assert_eq!(time_actual, time_expected);
@@ -20,22 +28,22 @@ fn run(cpu: &mut CPU, opcode: u8, len: u16, time_expected: u32) {
 
 #[test]
 fn nop() {
-  let mut cpu = init();
-  run(&mut cpu, 0x00, 1, 1);
+  let (mut cpu, mut mem) = init();
+  run(&mut cpu, &mut mem, 0x00, 1, 1);
 }
 
 #[test]
 fn ld_nn_n() {
   macro_rules! run_test {
-      ($reg:ident, $opcode:expr) => {{
-        let mut cpu = init();
-        cpu.mem.wb(cpu.regs.pc + 1, 0x42);
-        let f = cpu.regs.f;
-        run(&mut cpu, $opcode, 2, 2);
-        assert_eq!(cpu.regs.f, f);
-        assert_eq!(cpu.regs.$reg, 0x42);
-      }}
-    }
+    ($reg:ident, $opcode:expr) => {{
+      let (mut cpu, mut mem) = init();
+      mem.wb(cpu.regs.pc + 1, 0x42);
+      let f = cpu.regs.f;
+      run(&mut cpu, &mut mem, $opcode, 2, 2);
+      assert_eq!(cpu.regs.f, f);
+      assert_eq!(cpu.regs.$reg, 0x42);
+    }}
+  }
   run_test!(b, 0x06);
   run_test!(c, 0x0e);
   run_test!(d, 0x16);
@@ -48,10 +56,10 @@ fn ld_nn_n() {
 fn ld_r1_r2() {
   macro_rules! reg_reg {
       ($r1:ident, $r2:ident, $opcode:expr) => {{
-        let mut cpu = init();
+        let (mut cpu, mut mem) = init();
         cpu.regs.$r2 = 0x42;
         let f = cpu.regs.f;
-        run(&mut cpu, $opcode, 1, 1);
+        run(&mut cpu, &mut mem, $opcode, 1, 1);
         assert_eq!(cpu.regs.f, f);
         assert_eq!(cpu.regs.$r1, 0x42);
         assert_eq!(cpu.regs.$r2, 0x42);

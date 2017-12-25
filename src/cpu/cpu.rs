@@ -1,13 +1,13 @@
 use cpu::CPU;
-use cpu::Memory;
 use cpu::Registers;
 use cpu::reg;
+
+use mem::Memory;
 
 impl CPU {
   pub fn new() -> CPU {
     CPU {
       regs: Registers::new(),
-      mem: Memory::new(),
       m: 0,
       t: 0,
       halt: false,
@@ -17,43 +17,43 @@ impl CPU {
 
   /// Run one instruction.
   /// Increment m and t to account for the time taken by the clock.
-  pub fn step(&mut self) {
-    let m = self.exec();
+  pub fn step(&mut self, mem: &mut Memory) {
+    let m = self.exec(mem);
     self.regs.m = m;
     self.regs.t = 4 * m;
     self.m += self.regs.m;
     self.t += self.regs.t;
   }
 
-  /// Return the next byte at the program counter,
-  /// and increment the program counter.
-  fn bump(&mut self) -> u8 {
-    let result = self.mem.rb(self.regs.pc);
-    self.regs.pc += 1;
-    result
-  }
-
   /// Execute the next opcode.
   /// Return the m-time taken to run that opcode.
-  fn exec(&mut self) -> u32 {
+  fn exec(&mut self, mem: &mut Memory) -> u32 {
+    macro_rules! bump {
+      () => {{
+        let result = mem.rb(self.regs.pc);
+        self.regs.pc += 1;
+        result
+      }}
+    }
+
     macro_rules! read_u16_le {
       () => {{
-        let a = self.bump();
-        let b = self.bump();
+        let a = bump!();
+        let b = bump!();
         u16::from(a) | (u16::from(b) << 8)
       }}
     }
     macro_rules! ld_nn_n {
       ($reg:ident) => {{
-        let imm = self.bump();
+        let imm = bump!();
         self.regs.$reg = imm;
         2
       }}
     }
     macro_rules! ld_n_nn {
       ($r1:ident, $r2:ident) => {{
-        self.regs.$r2 = self.bump();
-        self.regs.$r1 = self.bump();
+        self.regs.$r2 = bump!();
+        self.regs.$r1 = bump!();
         3
       }}
     }
@@ -65,29 +65,29 @@ impl CPU {
     }
     macro_rules! ld_r1_r2m {
       ($r1:ident, $r2m:ident) => {{
-        self.regs.$r1 = self.mem.rb(self.regs.$r2m());
+        self.regs.$r1 = mem.rb(self.regs.$r2m());
         2
       }}
     }
     macro_rules! ld_r1m_r2 {
       ($r1m:ident, $r2:ident) => {{
-        self.mem.wb(self.regs.$r1m(), self.regs.$r2);
+        mem.wb(self.regs.$r1m(), self.regs.$r2);
         2
       }}
     }
 
     macro_rules! push {
       ($r1:ident, $r2:ident) => {{
-        self.mem.wb(self.regs.sp - 1, self.regs.$r1);
-        self.mem.wb(self.regs.sp - 2, self.regs.$r2);
+        mem.wb(self.regs.sp - 1, self.regs.$r1);
+        mem.wb(self.regs.sp - 2, self.regs.$r2);
         self.regs.sp -= 2;
         4
       }}
     }
     macro_rules! pop {
       ($r1:ident, $r2:ident) => {{
-        self.regs.$r2 = self.mem.rb(self.regs.sp);
-        self.regs.$r1 = self.mem.rb(self.regs.sp+1);
+        self.regs.$r2 = mem.rb(self.regs.sp);
+        self.regs.$r1 = mem.rb(self.regs.sp+1);
         self.regs.sp += 2;
         3
       }}
@@ -265,7 +265,7 @@ impl CPU {
 
     macro_rules! jr {
       () => {{
-        self.regs.pc += self.bump() as u16;
+        self.regs.pc += bump!() as u16;
         2
       }}
     }
@@ -284,7 +284,7 @@ impl CPU {
     macro_rules! call {
       () => {{
         self.regs.sp -= 2;
-        self.mem.ww(self.regs.sp, self.regs.pc + 2);
+        mem.ww(self.regs.sp, self.regs.pc + 2);
         self.regs.pc = read_u16_le!();
         3
       }}
@@ -303,7 +303,7 @@ impl CPU {
     macro_rules! rst {
       ($e:expr) => {{
         self.regs.sp -= 2;
-        self.mem.ww(self.regs.sp, self.regs.pc);
+        mem.ww(self.regs.sp, self.regs.pc);
         self.regs.pc = $e;
         8
       }}
@@ -311,7 +311,7 @@ impl CPU {
 
     macro_rules! ret {
       () => {{
-        self.regs.pc = self.mem.rw(self.regs.sp);
+        self.regs.pc = mem.rw(self.regs.sp);
         self.regs.sp += 2;
         2
       }}
@@ -326,7 +326,7 @@ impl CPU {
       }}
     }
 
-    match self.bump() {
+    match bump!() {
       0x00 => 1, // nop
       0x01 => ld_n_nn!(b, c),
       0x02 => ld_r1m_r2!(bc, a),
@@ -343,8 +343,8 @@ impl CPU {
       }
       0x08 => {
         let nn = read_u16_le!();
-        let val = self.mem.rb(self.regs.sp);
-        self.mem.wb(nn, val);
+        let val = mem.rb(self.regs.sp);
+        mem.wb(nn, val);
         5
       }
       0x09 => add_hl_n!(self.regs.bc()),
@@ -440,24 +440,24 @@ impl CPU {
         2
       }
       0x34 => {
-        let n = self.mem.rb(self.regs.hl());
+        let n = mem.rb(self.regs.hl());
         let c = if self.regs.c() { reg::C } else { 0 };
-        self.mem.wb(self.regs.hl(), n + 1);
+        mem.wb(self.regs.hl(), n + 1);
         self.regs.f = if n + 1 == 0 { reg::Z } else { 0 } |
           if n & 0xf == 0xf { reg::H } else { 0 } | c;
         3
       }
       0x35 => {
-        let n = self.mem.rb(self.regs.hl());
+        let n = mem.rb(self.regs.hl());
         let c = if self.regs.c() { reg::C } else { 0 };
-        self.mem.wb(self.regs.hl(), n - 1);
+        mem.wb(self.regs.hl(), n - 1);
         self.regs.f = if n - 1 == 0 { reg::Z } else { 0 } |
           if n & 0xf != 0 { reg::H } else { 0 } | c;
         3
       }
       0x36 => {
-        let n = self.bump();
-        self.mem.wb(self.regs.hl(), n);
+        let n = bump!();
+        mem.wb(self.regs.hl(), n);
         3
       }
       0x37 => {
@@ -478,7 +478,7 @@ impl CPU {
       0x3c => inc!(self.regs.a),
       0x3d => dec!(self.regs.a),
       0x3e => {
-        self.regs.a = self.bump();
+        self.regs.a = bump!();
         2
       }
       0x3f => {
@@ -564,7 +564,7 @@ impl CPU {
       0x83 => add_a_n!(self.regs.e),
       0x84 => add_a_n!(self.regs.h),
       0x85 => add_a_n!(self.regs.l),
-      0x86 => add_a_n!(self.mem.rb(self.regs.hl())),
+      0x86 => add_a_n!(mem.rb(self.regs.hl())),
       0x87 => {
         add_a_n!(self.regs.a);
         2
@@ -576,7 +576,7 @@ impl CPU {
       0x8c => adc_a_n!(self.regs.h),
       0x8d => adc_a_n!(self.regs.l),
       0x8e => {
-        adc_a_n!(self.mem.rb(self.regs.hl()));
+        adc_a_n!(mem.rb(self.regs.hl()));
         2
       }
       0x8f => adc_a_n!(self.regs.a),
@@ -588,7 +588,7 @@ impl CPU {
       0x94 => sub_a_n!(self.regs.h),
       0x95 => sub_a_n!(self.regs.l),
       0x96 => {
-        sub_a_n!(self.mem.rb(self.regs.hl()));
+        sub_a_n!(mem.rb(self.regs.hl()));
         2
       }
       0x97 => sbc_a_n!(self.regs.a),
@@ -599,7 +599,7 @@ impl CPU {
       0x9c => sbc_a_n!(self.regs.h),
       0x9d => sbc_a_n!(self.regs.l),
       0x9e => {
-        sbc_a_n!(self.mem.rb(self.regs.hl()));
+        sbc_a_n!(mem.rb(self.regs.hl()));
         2
       }
       0x9f => sbc_a_n!(self.regs.a),
@@ -611,7 +611,7 @@ impl CPU {
       0xa4 => and_a_n!(self.regs.h),
       0xa5 => and_a_n!(self.regs.l),
       0xa6 => {
-        and_a_n!(self.mem.rb(self.regs.hl()));
+        and_a_n!(mem.rb(self.regs.hl()));
         2
       }
       0xa7 => and_a_n!(self.regs.a),
@@ -622,7 +622,7 @@ impl CPU {
       0xac => xor_a_n!(self.regs.h),
       0xad => xor_a_n!(self.regs.l),
       0xae => {
-        xor_a_n!(self.mem.rb(self.regs.hl()));
+        xor_a_n!(mem.rb(self.regs.hl()));
         2
       }
       0xaf => xor_a_n!(self.regs.a),
@@ -634,7 +634,7 @@ impl CPU {
       0xb4 => or_a_n!(self.regs.h),
       0xb5 => or_a_n!(self.regs.l),
       0xb6 => {
-        or_a_n!(self.mem.rb(self.regs.hl()));
+        or_a_n!(mem.rb(self.regs.hl()));
         2
       }
       0xb7 => or_a_n!(self.regs.a),
@@ -645,7 +645,7 @@ impl CPU {
       0xbc => cp_a_n!(self.regs.h),
       0xbd => cp_a_n!(self.regs.l),
       0xbe => {
-        cp_a_n!(self.mem.rb(self.regs.hl()));
+        cp_a_n!(mem.rb(self.regs.hl()));
         2
       }
       0xbf => cp_a_n!(self.regs.a),
@@ -657,7 +657,7 @@ impl CPU {
       0xc4 => jpc!(self.regs.z()),
       0xc5 => push!(b, c),
       0xc6 => {
-        add_a_n!(self.bump());
+        add_a_n!(bump!());
         2
       }
       0xc7 => rst!(0x00),
@@ -669,11 +669,11 @@ impl CPU {
         }
         3
       }
-      0xcb => self.exec_cb(),
+      0xcb => self.exec_cb(mem),
       0xcc => callc!(self.regs.z()),
       0xcd => call!(),
       0xce => {
-        adc_a_n!(self.bump());
+        adc_a_n!(bump!());
         2
       }
       0xcf => rst!(0x08),
@@ -685,7 +685,7 @@ impl CPU {
       0xd4 => callc!(!self.regs.c()),
       0xd5 => push!(d, e),
       0xd6 => {
-        sub_a_n!(self.bump());
+        sub_a_n!(bump!());
         2
       }
       0xd7 => rst!(0x10),
@@ -702,20 +702,20 @@ impl CPU {
       0xdf => rst!(0x18),
 
       0xe0 => {
-        let n = self.bump();
-        self.mem.wb(0xff00 + u16::from(n), self.regs.a);
+        let n = bump!();
+        mem.wb(0xff00 + u16::from(n), self.regs.a);
         3
       }
       0xe1 => pop!(h, l),
       0xe2 => {
-        self.mem.wb(0xff00 + u16::from(self.regs.c), self.regs.a);
+        mem.wb(0xff00 + u16::from(self.regs.c), self.regs.a);
         2
       }
       0xe3 => unimplemented!(),
       0xe4 => unimplemented!(),
       0xe5 => push!(h, l),
       0xe6 => {
-        and_a_n!(self.bump());
+        and_a_n!(bump!());
         2
       }
       0xe7 => rst!(0x20),
@@ -723,7 +723,7 @@ impl CPU {
         let sp = self.regs.sp;
         // Add a signed 8-bit immediate to sp.
         // This requires casting to i8, sign extending, and then back to u16.
-        let n = self.bump() as i8 as i16 as u16;
+        let n = bump!() as i8 as i16 as u16;
         let res = sp + n;
         // Sleight-of-hand to check the carry and half-carry flags
         // and handle both negative and non-negative cases elegantly.
@@ -740,33 +740,33 @@ impl CPU {
       }
       0xea => {
         let nn = read_u16_le!();
-        self.mem.wb(nn, self.regs.a);
+        mem.wb(nn, self.regs.a);
         4
       }
       0xeb => unimplemented!(),
       0xec => unimplemented!(),
       0xed => unimplemented!(),
       0xee => {
-        xor_a_n!(self.bump());
+        xor_a_n!(bump!());
         2
       }
       0xef => rst!(0x28),
 
       0xf0 => {
-        let n = self.bump();
-        self.regs.a = self.mem.rb(0xff00 + u16::from(n));
+        let n = bump!();
+        self.regs.a = mem.rb(0xff00 + u16::from(n));
         3
       }
       0xf1 => pop!(a, f),
       0xf2 => {
-        self.regs.a = self.mem.rb(0xff00 + u16::from(self.regs.c));
+        self.regs.a = mem.rb(0xff00 + u16::from(self.regs.c));
         2
       }
       0xf3 => unimplemented!(),
       0xf4 => unimplemented!(),
       0xf5 => push!(a, f),
       0xf6 => {
-        or_a_n!(self.bump());
+        or_a_n!(bump!());
         2
       }
       0xf7 => rst!(0x30),
@@ -777,14 +777,14 @@ impl CPU {
       }
       0xfa => {
         let nn = read_u16_le!();
-        self.regs.a = self.mem.rb(nn);
+        self.regs.a = mem.rb(nn);
         4
       }
       0xfb => unimplemented!(),
       0xfc => unimplemented!(),
       0xfd => unimplemented!(),
       0xfe => {
-        cp_a_n!(self.bump());
+        cp_a_n!(bump!());
         2
       }
       0xff => rst!(0x38),
@@ -793,12 +793,20 @@ impl CPU {
   }
 
   /// Run cb instruction.
-  fn exec_cb(&mut self) -> u32 {
+  fn exec_cb(&mut self, mem: &mut Memory) -> u32 {
+    macro_rules! bump {
+      () => {{
+        let result = mem.rb(self.regs.pc);
+        self.regs.pc += 1;
+        result
+      }}
+    }
+
     macro_rules! do_hl {
       ($int:ident, $stmt:stmt, $time:expr) => {{
-        let mut $int = self.mem.rb(self.regs.hl());
+        let mut $int = mem.rb(self.regs.hl());
         $stmt;
-        self.mem.wb(self.regs.hl(), $int);
+        mem.wb(self.regs.hl(), $int);
         $time as u32
       }}
     }
@@ -905,7 +913,7 @@ impl CPU {
       }}
     }
 
-    match self.bump() {
+    match bump!() {
       0x00 => rlc!(self.regs.b, 2),
       0x01 => rlc!(self.regs.c, 2),
       0x02 => rlc!(self.regs.d, 2),
@@ -964,10 +972,10 @@ impl CPU {
       0x34 => swap!(h),
       0x35 => swap!(l),
       0x36 => {
-        let byte = self.mem.rb(self.regs.hl());
+        let byte = mem.rb(self.regs.hl());
         let top = byte >> 4;
         let bot = byte & 0xf;
-        self.mem.wb(self.regs.hl(), (bot << 4) | top);
+        mem.wb(self.regs.hl(), (bot << 4) | top);
         4
       }
       0x37 => swap!(a),
@@ -986,7 +994,7 @@ impl CPU {
       0x43 => bit!(self.regs.e, 0, 2),
       0x44 => bit!(self.regs.h, 0, 2),
       0x45 => bit!(self.regs.l, 0, 2),
-      0x46 => bit!(self.mem.rb(self.regs.hl()), 0, 4),
+      0x46 => bit!(mem.rb(self.regs.hl()), 0, 4),
       0x47 => bit!(self.regs.a, 0, 2),
       0x48 => bit!(self.regs.b, 1, 2),
       0x49 => bit!(self.regs.c, 1, 2),
@@ -994,7 +1002,7 @@ impl CPU {
       0x4b => bit!(self.regs.e, 1, 2),
       0x4c => bit!(self.regs.h, 1, 2),
       0x4d => bit!(self.regs.l, 1, 2),
-      0x4e => bit!(self.mem.rb(self.regs.hl()), 1, 4),
+      0x4e => bit!(mem.rb(self.regs.hl()), 1, 4),
       0x4f => bit!(self.regs.a, 1, 2),
 
       0x50 => bit!(self.regs.b, 2, 2),
@@ -1003,7 +1011,7 @@ impl CPU {
       0x53 => bit!(self.regs.e, 2, 2),
       0x54 => bit!(self.regs.h, 2, 2),
       0x55 => bit!(self.regs.l, 2, 2),
-      0x56 => bit!(self.mem.rb(self.regs.hl()), 2, 4),
+      0x56 => bit!(mem.rb(self.regs.hl()), 2, 4),
       0x57 => bit!(self.regs.a, 2, 2),
       0x58 => bit!(self.regs.b, 3, 2),
       0x59 => bit!(self.regs.c, 3, 2),
@@ -1011,7 +1019,7 @@ impl CPU {
       0x5b => bit!(self.regs.e, 3, 2),
       0x5c => bit!(self.regs.h, 3, 2),
       0x5d => bit!(self.regs.l, 3, 2),
-      0x5e => bit!(self.mem.rb(self.regs.hl()), 3, 4),
+      0x5e => bit!(mem.rb(self.regs.hl()), 3, 4),
       0x5f => bit!(self.regs.a, 3, 2),
 
       0x60 => bit!(self.regs.b, 4, 2),
@@ -1020,7 +1028,7 @@ impl CPU {
       0x63 => bit!(self.regs.e, 4, 2),
       0x64 => bit!(self.regs.h, 4, 2),
       0x65 => bit!(self.regs.l, 4, 2),
-      0x66 => bit!(self.mem.rb(self.regs.hl()), 4, 4),
+      0x66 => bit!(mem.rb(self.regs.hl()), 4, 4),
       0x67 => bit!(self.regs.a, 4, 2),
       0x68 => bit!(self.regs.b, 5, 2),
       0x69 => bit!(self.regs.c, 5, 2),
@@ -1028,7 +1036,7 @@ impl CPU {
       0x6b => bit!(self.regs.e, 5, 2),
       0x6c => bit!(self.regs.h, 5, 2),
       0x6d => bit!(self.regs.l, 5, 2),
-      0x6e => bit!(self.mem.rb(self.regs.hl()), 5, 4),
+      0x6e => bit!(mem.rb(self.regs.hl()), 5, 4),
       0x6f => bit!(self.regs.a, 5, 2),
 
       0x70 => bit!(self.regs.b, 6, 2),
@@ -1037,7 +1045,7 @@ impl CPU {
       0x73 => bit!(self.regs.e, 6, 2),
       0x74 => bit!(self.regs.h, 6, 2),
       0x75 => bit!(self.regs.l, 6, 2),
-      0x76 => bit!(self.mem.rb(self.regs.hl()), 6, 4),
+      0x76 => bit!(mem.rb(self.regs.hl()), 6, 4),
       0x77 => bit!(self.regs.a, 6, 2),
       0x78 => bit!(self.regs.b, 7, 2),
       0x79 => bit!(self.regs.c, 7, 2),
@@ -1045,7 +1053,7 @@ impl CPU {
       0x7b => bit!(self.regs.e, 7, 2),
       0x7c => bit!(self.regs.h, 7, 2),
       0x7d => bit!(self.regs.l, 7, 2),
-      0x7e => bit!(self.mem.rb(self.regs.hl()), 7, 4),
+      0x7e => bit!(mem.rb(self.regs.hl()), 7, 4),
       0x7f => bit!(self.regs.a, 7, 2),
 
       0x80 => reset!(self.regs.b, 0, 2),

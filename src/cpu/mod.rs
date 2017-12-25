@@ -1,10 +1,8 @@
 mod cpu;
-mod mem;
 mod reg;
 
 pub struct CPU {
-  pub regs: Registers,
-  pub mem: Memory,
+  regs: Registers,
 
   /// Current clock.
   m: u32,
@@ -18,7 +16,7 @@ pub struct CPU {
 mod optest;
 
 #[derive(Debug, Eq, PartialEq)]
-pub struct Registers {
+struct Registers {
   /// General-purpose registers.
   pub a: u8,
   pub b: u8,
@@ -38,16 +36,4 @@ pub struct Registers {
   /// Last Clock.
   m: u32,
   t: u32,
-}
-
-const WRAM_SIZE: usize = 8192;
-
-pub struct Memory {
-  bios_mapped: bool,
-
-  bios: Vec<u8>,
-  rom: Vec<u8>,
-  wram: [u8; WRAM_SIZE],
-  eram: Vec<u8>,
-  zram: Vec<u8>,
 }

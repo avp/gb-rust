@@ -1,4 +1,4 @@
-fn_args_density = "Compressed"
+fn_args_density = "Tall"
 max_width = 80
 reorder_imported_names = true
 reorder_imports = true

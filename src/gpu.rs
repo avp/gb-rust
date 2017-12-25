@@ -15,6 +15,9 @@ const COLORS: [RGBAColor; 4] =
 pub const HEIGHT: usize = 144;
 pub const WIDTH: usize = 160;
 
+pub const VRAM_SIZE: usize = 0x2000;
+pub const OAM_SIZE: usize = 0xa0;
+
 enum Mode {
   OAMRead = 2,
   VRAMRead = 3,
@@ -25,6 +28,9 @@ enum Mode {
 pub struct GPU {
   pub pixels: [f32; 4 * WIDTH * HEIGHT],
 
+  pub vram: Vec<u8>,
+  pub oam: Vec<u8>,
+
   mode: Mode,
   mode_clock: u32,
   line: usize,
@@ -34,6 +40,10 @@ impl GPU {
   pub fn new() -> GPU {
     GPU {
       pixels: [1.0; 4 * WIDTH * HEIGHT],
+
+      vram: vec![0; VRAM_SIZE],
+      oam: vec![0; OAM_SIZE],
+
       mode: Mode::HBlank,
       mode_clock: 0,
       line: 0,

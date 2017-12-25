@@ -8,17 +8,19 @@ use self::glium::glutin;
 use std::{thread, time};
 
 mod cpu;
+mod mem;
 mod gpu;
 mod display;
 
 fn main() {
   let cpu = cpu::CPU::new();
+  let mem = mem::Memory::new();
   let display = display::Display::new();
 
-  run(cpu, display);
+  run(cpu, mem, display);
 }
 
-fn run(_: cpu::CPU, mut display: display::Display) {
+fn run(_: cpu::CPU, _: mem::Memory, mut display: display::Display) {
   let mut running = true;
 
   while running {
