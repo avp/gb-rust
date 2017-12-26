@@ -3,7 +3,7 @@ use mem::Memory;
 
 fn init() -> (CPU, Memory) {
   let mut cpu = CPU::new();
-  let mem = Memory::new();
+  let mem = Memory::new(vec![]);
   // Se the PC to start in WRAM.
   cpu.regs.pc = 0xe000;
   (cpu, mem)
