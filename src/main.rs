@@ -46,7 +46,7 @@ fn main() {
 
 fn get_args() -> Args {
   let matches = App::new("GB Rust")
-    .version("1.0")
+    .version("0.1.0")
     .author("AVP <avp@avp42.com>")
     .about("Game Boy emulator")
     .arg(

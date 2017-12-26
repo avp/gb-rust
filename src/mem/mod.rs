@@ -91,7 +91,7 @@ impl Memory {
       // GPU VRAM
       0x8...0x9 => {
         self.gpu.vram[(addr & 0x1fff) as usize] = value;
-        // TODO: Call gpu.updatetile(addr, value)
+        self.gpu.update_tile(addr);
       }
       // ERAM
       0xa...0xb => self.eram[(addr & 0x1fff) as usize] = value,
