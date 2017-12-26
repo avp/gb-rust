@@ -15,3 +15,8 @@ build: false
 
 test_script:
   - cargo test --verbose
+  - cargo test --release --verbose
+
+artifacts:
+  - path: target\release\gb-rust.exe
+    name: Release Build
