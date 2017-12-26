@@ -17,11 +17,11 @@ pub struct Memory {
 }
 
 impl Memory {
-  pub fn new() -> Memory {
+  pub fn new(rom: Vec<u8>) -> Memory {
     Memory {
       bios_mapped: false,
       bios: vec![],
-      rom: vec![],
+      rom: rom,
       wram: vec![0; WRAM_SIZE],
       eram: vec![],
       zram: vec![],
