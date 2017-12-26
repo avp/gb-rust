@@ -11,8 +11,8 @@ const WINDOW_SCALE: u32 = 4;
 pub struct Display {
   pub events_loop: glutin::EventsLoop,
 
-  display: glium::Display,
-  dest_texture: glium::Texture2d,
+  display: Box<glium::Display>,
+  dest_texture: Box<glium::Texture2d>,
 }
 
 impl Display {
@@ -41,8 +41,8 @@ impl Display {
     Display {
       events_loop: events_loop,
 
-      display: display,
-      dest_texture: dest_texture,
+      display: Box::new(display),
+      dest_texture: Box::new(dest_texture),
     }
   }
 
@@ -52,7 +52,7 @@ impl Display {
       (WIDTH, HEIGHT),
     );
 
-    let texture = glium::Texture2d::new(&self.display, image).unwrap();
+    let texture = glium::Texture2d::new(&*self.display, image).unwrap();
 
     static DEST_RECT: glium::BlitTarget = glium::BlitTarget {
       left: 0,

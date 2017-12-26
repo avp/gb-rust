@@ -10,6 +10,7 @@ use glium::glutin;
 use std::fs::File;
 use std::io;
 use std::io::Read;
+use std::process;
 
 mod cpu;
 mod mem;
@@ -31,7 +32,8 @@ fn main() {
       println!("ROM Loaded: {}", &args.rom);
     }
     Err(e) => {
-      panic!("{}", e);
+      eprintln!("{}", e);
+      process::exit(1);
     }
   }
 
