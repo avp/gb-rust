@@ -125,7 +125,7 @@ impl CPU {
         let result = a.wrapping_add(n).wrapping_add(c);
         self.regs.a = result;
         self.regs.f = 0;
-        self.regs.f |= if a + n + c == 0 {reg::Z} else {0};
+        self.regs.f |= if result == 0 {reg::Z} else {0};
         self.regs.f |=
           if (a & 0xf) + (n & 0xf) + c > 0xf {reg::H} else {0};
         self.regs.f |=
@@ -416,8 +416,8 @@ impl CPU {
       0x1e => ld_nn_n!(e),
       0x1f => {
         let b0 = self.regs.a & 0x1;
-        let c = if self.regs.c() { 1 } else { 0 };
-        self.regs.a = (self.regs.a << 1) | (c << 7);
+        let c = if self.regs.c() { 1 << 7 } else { 0 };
+        self.regs.a = (self.regs.a >> 1) | c;
         self.regs.f = if self.regs.a == 0 { reg::Z } else { 0 } |
           if b0 == 1 { reg::C } else { 0 };
         1
@@ -434,7 +434,39 @@ impl CPU {
       0x24 => inc!(self.regs.h),
       0x25 => dec!(self.regs.h),
       0x26 => ld_nn_n!(h),
-      0x27 => unimplemented!(),
+      0x27 => {
+        // DAA
+        let mut a = self.regs.a as u16;
+        if !self.regs.n() {
+          if self.regs.h() || (a & 0xf) > 9 {
+            a = a.wrapping_add(0x06);
+          }
+          if self.regs.c() || a > 0x9f {
+            a = a.wrapping_add(0x60);
+          }
+        } else {
+          if self.regs.h() {
+            a = a.wrapping_sub(6) & 0xff;
+          }
+          if self.regs.c() {
+            a = a.wrapping_sub(0x60);
+          }
+        }
+
+        self.regs.f &= !(reg::H | reg::Z);
+        if (a & 0x100) == 0x100 {
+          self.regs.f |= reg::C;
+        }
+
+        a &= 0xff;
+
+        if a == 0 {
+          self.regs.f |= reg::Z;
+        }
+
+        self.regs.a = a as u8;
+        1
+      }
       0x28 => jrc!(self.regs.z()),
       0x29 => add_hl_n!(self.regs.hl()),
       0x2a => {
@@ -798,7 +830,13 @@ impl CPU {
         self.regs.a = mem.rb(0xff00 + (n as u16));
         3
       }
-      0xf1 => pop!(a, f),
+      0xf1 => {
+        // pop af
+        self.regs.f = mem.rb(self.regs.sp) & 0xf0;
+        self.regs.a = mem.rb(self.regs.sp + 1);
+        self.regs.sp += 2;
+        3
+      }
       0xf2 => {
         self.regs.a = mem.rb(0xff00 + (self.regs.c as u16));
         2
@@ -903,7 +941,7 @@ impl CPU {
       ($reg:expr, $time:expr) => {{
         let b0 = $reg & 0x1;
         let c = if self.regs.c() { 1 } else { 0 };
-        $reg = ($reg << 1) | (c << 7);
+        $reg = ($reg >> 1) | (c << 7);
         self.regs.f = if $reg == 0 { reg::Z } else { 0 } |
           if b0 == 1 { reg::C } else { 0 };
         $time as u32

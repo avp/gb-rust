@@ -127,3 +127,37 @@ fn sub() {
   run(&mut cpu, &mut mem, 0x97, 1, 1);
   assert_eq!(cpu.regs.a, 0);
 }
+
+#[test]
+fn rrca() {
+  let (mut cpu, mut mem) = init();
+  cpu.regs.a = 0x02;
+  cpu.regs.f = 0x00;
+  run(&mut cpu, &mut mem, 0x0f, 1, 1);
+  assert_eq!(cpu.regs.a, 0x01);
+  assert_eq!(cpu.regs.f, 0x00);
+
+  let (mut cpu, mut mem) = init();
+  cpu.regs.a = 0x01;
+  cpu.regs.f = 0x00;
+  run(&mut cpu, &mut mem, 0x0f, 1, 1);
+  assert_eq!(cpu.regs.a, 0x80);
+  assert_eq!(cpu.regs.f, 0x10);
+}
+
+#[test]
+fn rra() {
+  let (mut cpu, mut mem) = init();
+  cpu.regs.a = 0x04;
+  cpu.regs.f = 0x10;
+  run(&mut cpu, &mut mem, 0x1f, 1, 1);
+  assert_eq!(cpu.regs.a, 0x82);
+  assert_eq!(cpu.regs.f, 0x00);
+
+  let (mut cpu, mut mem) = init();
+  cpu.regs.a = 0x01;
+  cpu.regs.f = 0x10;
+  run(&mut cpu, &mut mem, 0x1f, 1, 1);
+  assert_eq!(cpu.regs.a, 0x80);
+  assert_eq!(cpu.regs.f, 0x10);
+}
