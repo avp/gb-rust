@@ -45,6 +45,11 @@ impl CPU {
         result
       }}
     }
+    macro_rules! xx {
+      () => {{
+        panic!("Invalid opcode");
+      }}
+    }
 
     macro_rules! read_u16_le {
       () => {{
@@ -150,11 +155,11 @@ impl CPU {
     }
     macro_rules! sbc_a_n {
       ($n:expr) => {{
-        let a = self.regs.a;
-        let n = $n;
-        let c = if self.regs.c() {1} else {0};
-        let result = a.wrapping_sub(n.wrapping_add(c));
-        self.regs.a = result;
+        let a = self.regs.a as u16;
+        let n = $n as u16;
+        let c: u16 = if self.regs.c() {1} else {0};
+        let result = a.wrapping_sub(n + c);
+        self.regs.a = result as u8;
         self.regs.f = reg::N;
         self.regs.f |= if result == 0 {reg::Z} else {0};
         self.regs.f |= if a < (n + c) {reg::C} else {0};
@@ -747,7 +752,7 @@ impl CPU {
       0xd0 => retc!(!self.regs.c()),
       0xd1 => pop!(d, e),
       0xd2 => jpc!(!self.regs.c()),
-      0xd3 => unimplemented!(),
+      0xd3 => xx!(),
       0xd4 => callc!(!self.regs.c()),
       0xd5 => push!(d, e),
       0xd6 => {
@@ -845,7 +850,7 @@ impl CPU {
         // TODO: Disable interrupts.
         1
       }
-      0xf4 => panic!("invalid opcode"),
+      0xf4 => xx!(),
       0xf5 => push!(a, f),
       0xf6 => {
         let n = bump!();
@@ -877,8 +882,8 @@ impl CPU {
         // TODO: Disable interrupts.
         1
       }
-      0xfc => unimplemented!(),
-      0xfd => unimplemented!(),
+      0xfc => xx!(),
+      0xfd => xx!(),
       0xfe => {
         let n = bump!();
         cp_a_n!(n);
@@ -1289,7 +1294,7 @@ impl CPU {
       0xfe => do_hl!(hl, set!(hl, 7, 1), 4),
       0xff => set!(self.regs.a, 7, 2),
 
-      _ => panic!("Invalid opcode"),
+      _ => panic!("Inexhaustive match"),
     }
   }
 }

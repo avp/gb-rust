@@ -19,6 +19,9 @@ pub struct Memory {
   zram: Vec<u8>,
   key: KeyData,
 
+  sb: u8,
+  sc: u8,
+
   pub gpu: Box<gpu::GPU>,
 }
 
@@ -31,6 +34,9 @@ impl Memory {
       eram: vec![0; ERAM_SIZE],
       zram: vec![0; ZRAM_SIZE],
       key: KeyData::new(),
+
+      sb: 0,
+      sc: 0,
 
       gpu: Box::new(gpu::GPU::new()),
     };
@@ -114,7 +120,9 @@ impl Memory {
               }
             } else {
               match addr & 0x3f {
-                0 => self.key.rb(),
+                0x00 => self.key.rb(),
+                0x01 => self.sb,
+                0x02 => self.sc,
                 _ => 0,
               }
             }
@@ -134,10 +142,9 @@ impl Memory {
   }
 
   /// Write `value` at address `addr`.
-  /// Panics if `addr` is in ROM.
   pub fn wb(&mut self, addr: u16, value: u8) {
     // debug!("MMU: 0x{:x} <- 0x{:x}", addr, value);
-    if addr == 0xff02 {
+    if addr == 0xff02 && value == 0x81 {
       print!("{}", self.rb(0xff01) as char);
     }
     match addr >> 12 {
@@ -180,7 +187,9 @@ impl Memory {
               }
             } else {
               match addr & 0x3f {
-                0 => self.key.wb(value),
+                0x00 => self.key.wb(value),
+                0x01 => self.sb = value,
+                0x02 => self.sc = value,
                 _ => (),
               }
             }
