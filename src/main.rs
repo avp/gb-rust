@@ -90,6 +90,16 @@ fn run(
           _ => (),
         }
       }
+      glutin::Event::DeviceEvent { event, .. } => {
+        match event {
+          glutin::DeviceEvent::Key(k) => {
+            if let glutin::ElementState::Pressed = k.state {
+              debug!("Key pressed: {:?}", k);
+            }
+          }
+          _ => (),
+        }
+      }
       _ => (),
     });
 
