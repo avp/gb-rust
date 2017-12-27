@@ -26,7 +26,7 @@ type Tile = [[u8; 8]; 8];
 
 pub struct GPU {
   pub frame: Box<Frame>,
-  render: Box<[u8; WIDTH * HEIGHT]>,
+  pub render: Box<[u8; WIDTH * HEIGHT]>,
 
   pub vram: Vec<u8>,
   pub oam: Vec<u8>,
@@ -192,13 +192,6 @@ impl GPU {
   }
 
   fn render_line(&mut self) {
-    // println!(
-    //   "scx={} scy={} bgmap={} bgtile={}",
-    //   self.scx,
-    //   self.scy,
-    //   self.bgmap,
-    //   self.bgtile
-    // );
     // Tile coordinate top left corner of the background.
     let row = (self.line + self.scy as usize) % 8;
     let mut col = (self.scx % 8) as usize;
@@ -218,8 +211,6 @@ impl GPU {
       usize;
     let mut tile = self.vram[map_row_offset + map_col_offset] as usize +
       if self.bgtile { 0 } else { 256 };
-
-    println!("{} 0x{:x}", self.line, tile);
 
     let line = self.line;
     for i in 0..WIDTH {

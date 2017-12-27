@@ -25,12 +25,13 @@ impl Display {
 
     let display = glium::Display::new(window, context, &events_loop).unwrap();
 
+    let (w, h) = display.get_framebuffer_dimensions();
     let dest_texture = glium::Texture2d::empty_with_format(
       &display,
       glium::texture::UncompressedFloatFormat::U8U8U8U8,
       glium::texture::MipmapsOption::NoMipmap,
-      WIDTH,
-      HEIGHT,
+      w,
+      h,
     ).unwrap();
     dest_texture.as_surface().clear_color(0.0, 0.0, 0.0, 1.0);
 
@@ -57,8 +58,8 @@ impl Display {
     static DEST_RECT: glium::BlitTarget = glium::BlitTarget {
       left: 0,
       bottom: 0,
-      width: WIDTH as i32,
-      height: HEIGHT as i32,
+      width: (WIDTH * WINDOW_SCALE) as i32,
+      height: (HEIGHT * WINDOW_SCALE) as i32,
     };
 
     texture.as_surface().blit_whole_color_to(
