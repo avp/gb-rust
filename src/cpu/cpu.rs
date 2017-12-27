@@ -224,7 +224,7 @@ impl CPU {
         let c = self.regs.c();
         self.regs.f = reg::N;
         self.regs.f |= if result == 0 {reg::Z} else {0};
-        self.regs.f |= if n & 0xf != 0 {reg::H} else {0};
+        self.regs.f |= if n & 0xf == 0 {reg::H} else {0};
         // Preserve C.
         self.regs.f |= if c {reg::C} else {0};
         1
