@@ -92,6 +92,7 @@ impl GPU {
         if self.mode_clock >= 204 {
           self.mode_clock = 0;
           self.line += 1;
+          // println!("LINE = {}", self.line);
           if self.line == HEIGHT - 1 {
             self.mode = Mode::VBlank;
             self.render_frame();
@@ -105,10 +106,12 @@ impl GPU {
         if self.mode_clock >= 456 {
           self.mode_clock = 0;
           self.line += 1;
+          // println!("LINE = {}", self.line);
           // VBlank takes 10 lines to run.
           if self.line > (HEIGHT - 1) + 10 {
             self.mode = Mode::OAMRead;
             self.line = 0;
+            // println!("LINE = {}", self.line);
           }
         }
       }
@@ -134,11 +137,15 @@ impl GPU {
 
       let color = if self.vram[addr] & sx != 0 { 1 } else { 0 } +
         if self.vram[addr + 1] & sx != 0 { 2 } else { 0 };
-      if color != 0 {
-        // println!("TILE {} {} {}: {}", tile, row, col, color);
-      }
       self.tileset[tile][row][col] = color;
     }
+
+    println!(
+      "UPDATETILE: {} ADDR: 0x{:x} TILE={:?}",
+      tile,
+      addr,
+      self.tileset[tile]
+    );
   }
 
   pub fn rb(&self, addr: u16) -> u8 {
@@ -192,31 +199,30 @@ impl GPU {
   }
 
   fn render_line(&mut self) {
-    let mut mapoffs = if self.bgmap { 0x1c00 } else { 0x1800 };
-    mapoffs += ((self.line + self.scy as usize) & 0xff) >> 3;
+    // Tile coordinate top left corner of the background.
+    let row = (self.line + self.scy as usize) % 8;
+    let mut col = (self.scx % 8) as usize;
 
-    let row = (self.line + self.scy as usize) & 7;
-    let mut col = (self.scx & 7) as usize;
+    let mapoffs = if self.bgmap { 0x1c00 } else { 0x1800 } +
+      (((self.line + self.scy as usize) % 256) >> 3) * 16;
 
     let mut lineoffs = (self.scx >> 3) as usize;
-    // if self.vram[mapoffs + lineoffs] != 6 {
-    //   println!(
-    //     "line={} mapoffs={} tile={}",
-    //     self.line,
-    //     mapoffs,
-    //     self.vram[mapoffs + lineoffs]
-    //   );
-    // }
     let mut tile = self.vram[mapoffs + lineoffs] as usize;
-    if self.bgtile {
-      tile = ((tile as i8 as i16) + 128) as usize + 128;
+
+    if self.bgtile && (tile as i16) < 0 {
+      println!("BGTILE BEFORE={}", tile);
+      tile = tile + 256;
+      println!("BGTILE AFTER={}", tile);
     }
 
+    let line = self.line;
     for i in 0..WIDTH {
       let color = self.tileset[tile][row][col];
-      let line = self.line;
       self.set(line, i, color);
 
+      if !self.bgmap && self.line == 0 {
+        println!("x = {} TILENR = {}", i, tile);
+      }
       // if color != 0 {
       //   println!(
       //     "scx={} scy={} line={} color={}",
@@ -231,10 +237,10 @@ impl GPU {
       if col == 8 {
         // Read another tile since this one is done.
         col = 0;
-        lineoffs = (lineoffs + 1) & 31;
+        lineoffs += 1;
         tile = self.vram[mapoffs + lineoffs] as usize;
-        if self.bgtile {
-          tile = ((tile as i8 as i16) + 128) as usize + 128;
+        if self.bgtile && (tile as i16) < 0 {
+          tile = tile + 256;
         }
       }
     }

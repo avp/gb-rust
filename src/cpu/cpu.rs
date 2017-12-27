@@ -19,9 +19,17 @@ impl CPU {
   /// Increment m and t to account for the time taken by the clock.
   /// Return t, the time taken for this instruction.
   pub fn step(&mut self, mem: &mut Memory) -> u32 {
+    // println!(
+    //   "0x{:x} 0x{:x} 0x{:x} 0x{:x}",
+    //   self.regs.pc,
+    //   mem.rb(self.regs.pc),
+    //   mem.rb(self.regs.pc + 1),
+    //   self.regs.a
+    // );
     let m = self.exec(mem);
     self.regs.m = m;
     self.regs.t = 4 * m;
+    // println!("TICKS={}", self.regs.t);
     self.m += self.regs.m;
     self.t += self.regs.t;
     self.regs.t
@@ -30,13 +38,6 @@ impl CPU {
   /// Execute the next opcode.
   /// Return the m-time taken to run that opcode.
   fn exec(&mut self, mem: &mut Memory) -> u32 {
-    // println!(
-    //   "0x{:x} 0x{:x} 0x{:x} 0x{:x}",
-    //   self.regs.pc,
-    //   mem.rb(self.regs.pc),
-    //   mem.rb(self.regs.pc + 1),
-    //   self.regs.a
-    // );
     macro_rules! bump {
       () => {{
         let result = mem.rb(self.regs.pc);
@@ -264,7 +265,7 @@ impl CPU {
     macro_rules! jp {
       () => {{
         self.regs.pc = read_u16_le!();
-        3
+        4
       }}
     }
     macro_rules! jpc {
@@ -286,7 +287,7 @@ impl CPU {
         let target = ((pc as i16) + n) as u16;
         // debug!("JR: PC=0x{:x} n=0x{:x} target=0x{:x}", pc, n, target);
         self.regs.pc = target;
-        2
+        6
       }}
     }
     macro_rules! jrc {
@@ -698,7 +699,10 @@ impl CPU {
       }
       0xcb => self.exec_cb(mem),
       0xcc => callc!(self.regs.z()),
-      0xcd => call!(),
+      0xcd => {
+        call!();
+        6
+      }
       0xce => {
         let n = bump!();
         adc_a_n!(n);
