@@ -19,11 +19,19 @@ impl CPU {
   /// Increment m and t to account for the time taken by the clock.
   /// Return t, the time taken for this instruction.
   pub fn step(&mut self, mem: &mut Memory) -> u32 {
+    // eprintln!(
+    //   "0x{:x} 0x{:x} 0x{:x} 0x{:x}",
+    //   self.regs.pc,
+    //   mem.rb(self.regs.pc),
+    //   mem.rb(self.regs.pc + 1),
+    //   self.regs.a,
+    // );
     let m = self.exec(mem);
     self.regs.m = m;
     self.regs.t = 4 * m;
     self.m += self.regs.m;
     self.t += self.regs.t;
+    // eprintln!("TICKS={}", self.regs.t);
     self.regs.t
   }
 
@@ -194,11 +202,12 @@ impl CPU {
         let n = $n;
         let result = n.wrapping_add(1);
         $n = result;
+        let c = self.regs.c();
         self.regs.f = 0;
         self.regs.f |= if result == 0 {reg::Z} else {0};
         self.regs.f |= if n & 0xf == 0xf {reg::H} else {0};
         // Preserve C.
-        self.regs.f |= if self.regs.c() {reg::C} else {0};
+        self.regs.f |= if c {reg::C} else {0};
         1
       }}
     }
@@ -207,11 +216,12 @@ impl CPU {
         let n = $n;
         let result = n.wrapping_sub(1);
         $n = result;
+        let c = self.regs.c();
         self.regs.f = reg::N;
         self.regs.f |= if result == 0 {reg::Z} else {0};
         self.regs.f |= if n & 0xf != 0 {reg::H} else {0};
         // Preserve C.
-        self.regs.f |= if self.regs.c() {reg::C} else {0};
+        self.regs.f |= if c {reg::C} else {0};
         1
       }}
     }
@@ -278,7 +288,7 @@ impl CPU {
         let pc = self.regs.pc;
         let target = ((pc as i16) + n) as u16;
         self.regs.pc = target;
-        6
+        3
       }}
     }
     macro_rules! jrc {
@@ -298,7 +308,8 @@ impl CPU {
         let _pc = self.regs.pc;
         self.regs.sp -= 2;
         let target = read_u16_le!();
-        mem.ww(self.regs.sp, self.regs.pc);
+        let retaddr = self.regs.pc;
+        mem.ww(self.regs.sp, retaddr);
         self.regs.pc = target;
         3
       }}
@@ -317,7 +328,8 @@ impl CPU {
     macro_rules! rst {
       ($e:expr) => {{
         self.regs.sp -= 2;
-        mem.ww(self.regs.sp, self.regs.pc);
+        let retaddr = self.regs.pc;
+        mem.ww(self.regs.sp, retaddr);
         self.regs.pc = $e;
         8
       }}
@@ -325,10 +337,10 @@ impl CPU {
 
     macro_rules! ret {
       () => {{
-        let target = mem.rw(self.regs.sp);
-        self.regs.pc = target;
+        let retaddr = mem.rw(self.regs.sp);
         self.regs.sp += 2;
-        2
+        self.regs.pc = retaddr;
+        4
       }}
     }
     macro_rules! retc {
@@ -336,7 +348,8 @@ impl CPU {
         if $e {
           ret!()
         } else {
-          8
+          self.regs.pc += 2;
+          2
         }
       }}
     }
@@ -358,8 +371,8 @@ impl CPU {
       }
       0x08 => {
         let nn = read_u16_le!();
-        let val = mem.rb(self.regs.sp);
-        mem.wb(nn, val);
+        let val = self.regs.sp;
+        mem.ww(nn, val);
         5
       }
       0x09 => add_hl_n!(self.regs.bc()),
@@ -670,7 +683,7 @@ impl CPU {
       0xc1 => pop!(b, c),
       0xc2 => jpc!(!self.regs.z()),
       0xc3 => jp!(),
-      0xc4 => jpc!(self.regs.z()),
+      0xc4 => callc!(!self.regs.z()),
       0xc5 => push!(b, c),
       0xc6 => {
         let n = bump!();
@@ -720,7 +733,11 @@ impl CPU {
       0xdb => unimplemented!(),
       0xdc => callc!(self.regs.c()),
       0xdd => unimplemented!(),
-      0xde => unimplemented!(),
+      0xde => {
+        let n = bump!();
+        sbc_a_n!(n);
+        2
+      }
       0xdf => rst!(0x18),
 
       0xe0 => {
@@ -790,7 +807,7 @@ impl CPU {
         // TODO: Disable interrupts.
         1
       }
-      0xf4 => unimplemented!(),
+      0xf4 => panic!("invalid opcode"),
       0xf5 => push!(a, f),
       0xf6 => {
         let n = bump!();

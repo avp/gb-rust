@@ -86,9 +86,9 @@ impl Memory {
       // ERAM
       0xa...0xb => self.eram[(addr & 0x1fff) as usize],
       // WRAM
-      0xc...0xd => self.wram[(addr & 0x1fff) as usize],
+      0xc...0xd => self.wram[(addr & 0x0fff) as usize],
       // WRAM Shadow
-      0xe => self.wram[(addr & 0x1fff) as usize],
+      0xe => self.wram[(addr & 0x0fff) as usize],
       0xf => {
         match (addr >> 8) & 0xf {
           // WRAM Shadow
@@ -137,7 +137,7 @@ impl Memory {
   /// Panics if `addr` is in ROM.
   pub fn wb(&mut self, addr: u16, value: u8) {
     // debug!("MMU: 0x{:x} <- 0x{:x}", addr, value);
-    if addr == 0xff02 && value == 0x81 {
+    if addr == 0xff02 {
       print!("{}", self.rb(0xff01) as char);
     }
     match addr >> 12 {
@@ -153,9 +153,9 @@ impl Memory {
       // ERAM
       0xa...0xb => self.eram[(addr & 0x1fff) as usize] = value,
       // WRAM
-      0xc...0xd => self.wram[(addr & 0x1fff) as usize] = value,
+      0xc...0xd => self.wram[(addr & 0x0fff) as usize] = value,
       // WRAM Shadow
-      0xe => self.wram[(addr & 0x1fff) as usize] = value,
+      0xe => self.wram[(addr & 0x0fff) as usize] = value,
       0xf => {
         match (addr >> 8) & 0xf {
           // WRAM Shadow
