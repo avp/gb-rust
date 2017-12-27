@@ -11,6 +11,7 @@ pub const VRAM_SIZE: usize = 0x2000;
 pub const OAM_SIZE: usize = 0xa0;
 
 const NUM_TILES: usize = 384;
+const NUM_OBJECTS: usize = 40;
 
 pub type Frame = [u8; 4 * WIDTH * HEIGHT];
 
@@ -23,6 +24,33 @@ enum Mode {
 }
 
 type Tile = [[u8; 8]; 8];
+
+#[derive(Debug, Copy)]
+struct Object {
+  pub x: i8,
+  pub y: i8,
+  pub tile: u32,
+  pub palette: bool,
+  pub xflip: bool,
+  pub yflip: bool,
+  pub priority: u32,
+  pub num: u32,
+}
+
+impl Object {
+  fn new() -> Object {
+    Object {
+      x: -8,
+      y: -16,
+      tile: 0,
+      palette: false,
+      xflip: false,
+      yflip: false,
+      priority: 0,
+      num: 0,
+    }
+  }
+}
 
 pub struct GPU {
   pub frame: Box<Frame>,
@@ -44,10 +72,16 @@ pub struct GPU {
   palette: [u8; 4],
 
   tileset: Box<[Tile; NUM_TILES]>,
+  objects: Box<[Object; NUM_OBJECTS]>,
 }
 
 impl GPU {
   pub fn new() -> GPU {
+    let objects = [Object::new(); NUM_OBJECTS];
+    for i in 0..NUM_OBJECTS {
+      objects[i].num = i;
+    }
+
     GPU {
       frame: Box::new([0; 4 * WIDTH * HEIGHT]),
       render: Box::new([0; WIDTH * HEIGHT]),
@@ -65,9 +99,10 @@ impl GPU {
       switchlcd: false,
       scx: 0,
       scy: 0,
-      palette: [255, 192, 96, 0],
+      bg_palette: [255, 192, 96, 0],
 
       tileset: Box::new([[[0; 8]; 8]; NUM_TILES]),
+      objects: Box::new(objects),
     }
   }
 
@@ -136,6 +171,25 @@ impl GPU {
       let color = if self.vram[addr] & sx != 0 { 1 } else { 0 } +
         if self.vram[addr + 1] & sx != 0 { 2 } else { 0 };
       self.tileset[tile][row][col] = color;
+    }
+  }
+
+  pub fn update_object(&mut self, addr: u16, val: u8) {
+    let i = addr >> 2;
+    let val: i8 = val as i8;
+    if i < NUM_OBJECTS {
+      match addr % 4 {
+        0 => self.objects[i].y = val - 16,
+        1 => self.objects[i].x = val - 8,
+        2 => self.objects[i].tile = val,
+        3 => {
+          self.objects[i].palette = val & 0x10 != 0;
+          self.objects[i].xflip = val & 0x20 != 0;
+          self.objects[i].yflip = val & 0x40 != 0;
+          self.objects[i].priority = val & 0x80 != 0;
+        }
+        _ => panic!("addr % 4> 3"),
+      }
     }
   }
 
