@@ -92,7 +92,6 @@ impl GPU {
         if self.mode_clock >= 204 {
           self.mode_clock = 0;
           self.line += 1;
-          // println!("LINE = {}", self.line);
           if self.line == HEIGHT - 1 {
             self.mode = Mode::VBlank;
             self.render_frame();
@@ -106,12 +105,10 @@ impl GPU {
         if self.mode_clock >= 456 {
           self.mode_clock = 0;
           self.line += 1;
-          // println!("LINE = {}", self.line);
           // VBlank takes 10 lines to run.
           if self.line > (HEIGHT - 1) + 10 {
             self.mode = Mode::OAMRead;
             self.line = 0;
-            // println!("LINE = {}", self.line);
           }
         }
       }
@@ -139,13 +136,6 @@ impl GPU {
         if self.vram[addr + 1] & sx != 0 { 2 } else { 0 };
       self.tileset[tile][row][col] = color;
     }
-
-    println!(
-      "UPDATETILE: {} ADDR: 0x{:x} TILE={:?}",
-      tile,
-      addr,
-      self.tileset[tile]
-    );
   }
 
   pub fn rb(&self, addr: u16) -> u8 {
@@ -210,19 +200,13 @@ impl GPU {
     let mut tile = self.vram[mapoffs + lineoffs] as usize;
 
     if self.bgtile && (tile as i16) < 0 {
-      println!("BGTILE BEFORE={}", tile);
       tile = tile + 256;
-      println!("BGTILE AFTER={}", tile);
     }
 
     let line = self.line;
     for i in 0..WIDTH {
       let color = self.tileset[tile][row][col];
       self.set(line, i, color);
-
-      if !self.bgmap && self.line == 0 {
-        println!("x = {} TILENR = {}", i, tile);
-      }
 
       col += 1;
       if col == 8 {

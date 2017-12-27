@@ -101,8 +101,6 @@ impl Memory {
       0x8...0x9 => {
         self.gpu.vram[(addr & 0x1fff) as usize] = value;
         self.gpu.update_tile(addr);
-        println!("WRITE VRAM: 0x{:x} <- 0x{:x}", addr, value);
-        println!("VRAM = {:?}", &self.gpu.vram[0x1800..0x1830]);
       }
       // ERAM
       0xa...0xb => self.eram[(addr & 0x1fff) as usize] = value,

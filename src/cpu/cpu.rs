@@ -19,17 +19,9 @@ impl CPU {
   /// Increment m and t to account for the time taken by the clock.
   /// Return t, the time taken for this instruction.
   pub fn step(&mut self, mem: &mut Memory) -> u32 {
-    // println!(
-    //   "0x{:x} 0x{:x} 0x{:x} 0x{:x}",
-    //   self.regs.pc,
-    //   mem.rb(self.regs.pc),
-    //   mem.rb(self.regs.pc + 1),
-    //   self.regs.a
-    // );
     let m = self.exec(mem);
     self.regs.m = m;
     self.regs.t = 4 * m;
-    // println!("TICKS={}", self.regs.t);
     self.m += self.regs.m;
     self.t += self.regs.t;
     self.regs.t
@@ -285,7 +277,6 @@ impl CPU {
         // Need to add 1 here to account for bumping past the instruction.
         let pc = self.regs.pc;
         let target = ((pc as i16) + n) as u16;
-        // debug!("JR: PC=0x{:x} n=0x{:x} target=0x{:x}", pc, n, target);
         self.regs.pc = target;
         6
       }}
@@ -307,7 +298,6 @@ impl CPU {
         let _pc = self.regs.pc;
         self.regs.sp -= 2;
         let target = read_u16_le!();
-        // debug!("CALL: src=0x{:x} target=0x{:x} ret=0x{:x}", pc, target, self.regs.pc);
         mem.ww(self.regs.sp, self.regs.pc);
         self.regs.pc = target;
         3
@@ -336,7 +326,6 @@ impl CPU {
     macro_rules! ret {
       () => {{
         let target = mem.rw(self.regs.sp);
-        // debug!("RET: target=0x{:x}", target);
         self.regs.pc = target;
         self.regs.sp += 2;
         2
