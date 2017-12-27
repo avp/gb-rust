@@ -93,8 +93,17 @@ fn run(
       glutin::Event::DeviceEvent { event, .. } => {
         match event {
           glutin::DeviceEvent::Key(k) => {
-            if let glutin::ElementState::Pressed = k.state {
-              debug!("Key pressed: {:?}", k);
+            if let Some(keycode) = k.virtual_keycode {
+              if let Some(key) = mem::Key::from_code(keycode) {
+                match k.state {
+                  glutin::ElementState::Pressed => {
+                    mem.key_down(key);
+                  }
+                  glutin::ElementState::Released => {
+                    mem.key_up(key);
+                  }
+                }
+              }
             }
           }
           _ => (),

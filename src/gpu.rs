@@ -130,8 +130,6 @@ impl GPU {
       return;
     }
 
-    debug!("Updating for address: 0x{:x}", addr);
-
     for col in 0..8 {
       let sx: u8 = 1 << (7 - col);
 

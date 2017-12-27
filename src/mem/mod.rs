@@ -1,7 +1,10 @@
 #![cfg_attr(feature = "cargo-clippy", allow(match_same_arms))]
 
 mod bios;
+mod key;
 
+pub use self::key::Key;
+use self::key::KeyData;
 use gpu;
 
 const WRAM_SIZE: usize = 0x2000;
@@ -14,6 +17,7 @@ pub struct Memory {
   wram: Vec<u8>,
   eram: Vec<u8>,
   zram: Vec<u8>,
+  key: KeyData,
 
   pub gpu: Box<gpu::GPU>,
 }
@@ -26,6 +30,7 @@ impl Memory {
       wram: vec![0; WRAM_SIZE],
       eram: vec![0; ERAM_SIZE],
       zram: vec![0; ZRAM_SIZE],
+      key: KeyData::new(),
 
       gpu: Box::new(gpu::GPU::new()),
     };
@@ -101,10 +106,15 @@ impl Memory {
             if addr >= 0xff80 {
               // Zero page.
               self.zram[(addr & 0x7f) as usize]
-            } else {
+            } else if addr >= 0xff40 {
               // I/O Control
               match (addr >> 4) & 0xf {
                 0x4...0x7 => self.gpu.rb(addr),
+                _ => 0,
+              }
+            } else {
+              match addr & 0x3f {
+                0 => self.key.rb(),
                 _ => 0,
               }
             }
@@ -162,10 +172,15 @@ impl Memory {
             if addr >= 0xff80 {
               // Zero page.
               self.zram[(addr & 0x7f) as usize] = value
-            } else {
+            } else if addr >= 0xff40 {
               // I/O Control
               match (addr >> 4) & 0xf {
                 0x4...0x7 => self.gpu.wb(addr, value),
+                _ => (),
+              }
+            } else {
+              match addr & 0x3f {
+                0 => self.key.wb(value),
                 _ => (),
               }
             }
@@ -190,5 +205,13 @@ impl Memory {
       self.wb(cur, *v);
       cur += 1;
     }
+  }
+
+  pub fn key_down(&mut self, key: Key) {
+    self.key.key_down(key);
+  }
+
+  pub fn key_up(&mut self, key: Key) {
+    self.key.key_up(key);
   }
 }
