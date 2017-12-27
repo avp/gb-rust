@@ -173,15 +173,15 @@ impl GPU {
       0xff42 => self.scy = value,
       0xff43 => self.scx = value,
       0xff47 => {
-        // for i in 0..4 {
-        //   match (value >> (i * 2)) & 3 {
-        //     0 => self.palette[i] = 255,
-        //     1 => self.palette[i] = 192,
-        //     2 => self.palette[i] = 96,
-        //     3 => self.palette[i] = 0,
-        //     _ => unimplemented!(),
-        //   }
-        // }
+        for i in 0..4 {
+          match (value >> (i * 2)) & 3 {
+            0 => self.palette[i] = 255,
+            1 => self.palette[i] = 192,
+            2 => self.palette[i] = 96,
+            3 => self.palette[i] = 0,
+            _ => unimplemented!(),
+          }
+        }
       }
       _ => (),
     }
@@ -204,9 +204,9 @@ impl GPU {
     let mut col = (self.scx % 8) as usize;
 
     let mapoffs = if self.bgmap { 0x1c00 } else { 0x1800 } +
-      (((self.line + self.scy as usize) % 256) >> 3) * 16;
+      (((self.line + self.scy as usize) % 256) >> 3) * 32;
 
-    let mut lineoffs = (self.scx >> 3) as usize;
+    let mut lineoffs = (self.scy >> 3) as usize;
     let mut tile = self.vram[mapoffs + lineoffs] as usize;
 
     if self.bgtile && (tile as i16) < 0 {
@@ -223,15 +223,6 @@ impl GPU {
       if !self.bgmap && self.line == 0 {
         println!("x = {} TILENR = {}", i, tile);
       }
-      // if color != 0 {
-      //   println!(
-      //     "scx={} scy={} line={} color={}",
-      //     self.scx,
-      //     self.scy,
-      //     self.line,
-      //     self.tileset[tile][row][col]
-      //   );
-      // }
 
       col += 1;
       if col == 8 {
