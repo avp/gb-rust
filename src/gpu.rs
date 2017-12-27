@@ -1,9 +1,6 @@
 /// RGBA Color.
 pub type RGBAColor = (u8, u8, u8, u8);
 
-/// Map of GB color codes to grayscale values.
-const COLORS: [u8; 4] = [255, 192, 96, 0];
-
 pub const HEIGHT: usize = 144;
 pub const WIDTH: usize = 160;
 
@@ -36,9 +33,12 @@ pub struct GPU {
   line: usize,
 
   bgmap: bool,
-  bgtile: usize,
+  bgtile: bool,
+  switchbg: bool,
+  switchlcd: bool,
   scx: u8,
   scy: u8,
+  palette: [u8; 4],
 
   tileset: Box<[Tile; NUM_TILES]>,
 }
@@ -46,7 +46,7 @@ pub struct GPU {
 impl GPU {
   pub fn new() -> GPU {
     GPU {
-      frame: Box::new([255; 4 * WIDTH * HEIGHT]),
+      frame: Box::new([0; 4 * WIDTH * HEIGHT]),
       render: Box::new([0; WIDTH * HEIGHT]),
 
       vram: vec![0; VRAM_SIZE],
@@ -57,9 +57,12 @@ impl GPU {
       line: 0,
 
       bgmap: false,
-      bgtile: 0,
+      bgtile: false,
+      switchbg: false,
+      switchlcd: false,
       scx: 0,
       scy: 0,
+      palette: [255, 192, 96, 0],
 
       tileset: Box::new([[[0; 8]; 8]; NUM_TILES]),
     }
@@ -114,18 +117,66 @@ impl GPU {
   }
 
   pub fn update_tile(&mut self, addr: u16) {
-    // Base address for this tile.
+    // Base address for this tile row.
     let addr = (addr & 0x1ffe) as usize;
 
-    let tile = ((addr >> 4) & 511) as usize;
-    let row = ((addr >> 1) & 7) as usize;
+    let tile = ((addr >> 4) & 0x1ff) as usize;
+    let row = ((addr >> 1) & 0x7) as usize;
 
-    for col in 0..9 {
-      let sx = 1 << (7 - col);
+    if tile >= NUM_TILES {
+      return;
+    }
 
-      self.tileset[tile][row][col] =
-        if self.vram[addr] & sx != 0 { 1 } else { 0 } +
-          if self.vram[addr + 1] & sx != 0 { 2 } else { 0 }
+    debug!("Updating for address: 0x{:x}", addr);
+
+    for col in 0..8 {
+      let sx: u8 = 1 << (7 - col);
+
+      let color = if self.vram[addr] & sx != 0 { 1 } else { 0 } +
+        if self.vram[addr + 1] & sx != 0 { 2 } else { 0 };
+      if color != 0 {
+        // println!("TILE {} {} {}: {}", tile, row, col, color);
+      }
+      self.tileset[tile][row][col] = color;
+    }
+  }
+
+  pub fn rb(&self, addr: u16) -> u8 {
+    match addr {
+      0xff40 => {
+        (if self.switchbg { 1 } else { 0 }) | (if self.bgmap { 8 } else { 0 }) |
+          (if self.bgtile { 0x10 } else { 0 }) |
+          (if self.switchlcd { 0x80 } else { 0 })
+      }
+      0xff42 => self.scy,
+      0xff43 => self.scx,
+      0xff44 => self.line as u8,
+      _ => 0,
+    }
+  }
+
+  pub fn wb(&mut self, addr: u16, value: u8) {
+    match addr {
+      0xff40 => {
+        self.switchbg = (value & 0x1) != 0;
+        self.bgmap = (value & 0x8) != 0;
+        self.bgtile = (value & 0x10) != 0;
+        self.switchlcd = (value & 0x80) != 0;
+      }
+      0xff42 => self.scy = value,
+      0xff43 => self.scx = value,
+      0xff47 => {
+        // for i in 0..4 {
+        //   match (value >> (i * 2)) & 3 {
+        //     0 => self.palette[i] = 255,
+        //     1 => self.palette[i] = 192,
+        //     2 => self.palette[i] = 96,
+        //     3 => self.palette[i] = 0,
+        //     _ => unimplemented!(),
+        //   }
+        // }
+      }
+      _ => (),
     }
   }
 
@@ -142,22 +193,39 @@ impl GPU {
 
   fn render_line(&mut self) {
     let mut mapoffs = if self.bgmap { 0x1c00 } else { 0x1800 };
-    mapoffs += ((self.line + self.scy as usize) & 255) >> 3;
+    mapoffs += ((self.line + self.scy as usize) & 0xff) >> 3;
 
     let row = (self.line + self.scy as usize) & 7;
-    let mut canvasoffs = self.line * WIDTH;
-
     let mut col = (self.scx & 7) as usize;
+
     let mut lineoffs = (self.scx >> 3) as usize;
+    // if self.vram[mapoffs + lineoffs] != 6 {
+    //   println!(
+    //     "line={} mapoffs={} tile={}",
+    //     self.line,
+    //     mapoffs,
+    //     self.vram[mapoffs + lineoffs]
+    //   );
+    // }
     let mut tile = self.vram[mapoffs + lineoffs] as usize;
-    if self.bgtile == 1 && tile < 128 {
-      tile += 256;
+    if self.bgtile {
+      tile = ((tile as i8 as i16) + 128) as usize + 128;
     }
 
-    for _ in 0..WIDTH + 1 {
+    for i in 0..WIDTH {
       let color = self.tileset[tile][row][col];
-      self.render[canvasoffs] = color;
-      canvasoffs += 1;
+      let line = self.line;
+      self.set(line, i, color);
+
+      // if color != 0 {
+      //   println!(
+      //     "scx={} scy={} line={} color={}",
+      //     self.scx,
+      //     self.scy,
+      //     self.line,
+      //     self.tileset[tile][row][col]
+      //   );
+      // }
 
       col += 1;
       if col == 8 {
@@ -165,8 +233,8 @@ impl GPU {
         col = 0;
         lineoffs = (lineoffs + 1) & 31;
         tile = self.vram[mapoffs + lineoffs] as usize;
-        if self.bgtile == 1 && tile < 128 {
-          tile += 256;
+        if self.bgtile {
+          tile = ((tile as i8 as i16) + 128) as usize + 128;
         }
       }
     }
@@ -176,9 +244,9 @@ impl GPU {
     for i in 0..(WIDTH * HEIGHT) {
       let color = self.render[i] as usize;
       let j = i * 4;
-      self.frame[j] = COLORS[color];
-      self.frame[j + 1] = COLORS[color];
-      self.frame[j + 2] = COLORS[color];
+      self.frame[j] = self.palette[color];
+      self.frame[j + 1] = self.palette[color];
+      self.frame[j + 2] = self.palette[color];
       // Full alpha value.
       self.frame[j + 3] = 255;
     }

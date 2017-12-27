@@ -40,15 +40,15 @@ impl Registers {
 
   pub fn hl_inc(&mut self) {
     if self.l == 0xff {
-      self.h += 1;
+      self.h = self.h.wrapping_add(1);
     }
-    self.l += 1;
+    self.l = self.l.wrapping_add(1);
   }
   pub fn hl_dec(&mut self) {
     if self.l == 0 {
-      self.h -= 1;
+      self.h = self.h.wrapping_sub(1);
     }
-    self.l -= 1;
+    self.l = self.l.wrapping_sub(1);
   }
 
 

@@ -4,7 +4,9 @@ mod bios;
 
 use gpu;
 
-const WRAM_SIZE: usize = 8192;
+const WRAM_SIZE: usize = 0x2000;
+const ERAM_SIZE: usize = 0x2000;
+const ZRAM_SIZE: usize = 0xff;
 
 pub struct Memory {
   bios: Vec<u8>,
@@ -22,8 +24,8 @@ impl Memory {
       bios: bios::BIOS.to_vec(),
       rom: rom,
       wram: vec![0; WRAM_SIZE],
-      eram: vec![],
-      zram: vec![],
+      eram: vec![0; ERAM_SIZE],
+      zram: vec![0; ZRAM_SIZE],
 
       gpu: Box::new(gpu::GPU::new()),
     }
@@ -63,7 +65,10 @@ impl Memory {
               self.zram[(addr & 0x7f) as usize]
             } else {
               // I/O Control
-              unimplemented!()
+              match (addr >> 4) & 0xf {
+                0x4...0x7 => self.gpu.rb(addr),
+                _ => 0,
+              }
             }
           }
           _ => panic!("Invalid result of u16 >> 8 & 0xf"),
@@ -83,13 +88,20 @@ impl Memory {
   /// Write `value` at address `addr`.
   /// Panics if `addr` is in ROM.
   pub fn wb(&mut self, addr: u16, value: u8) {
+    // debug!("MMU: 0x{:x} <- 0x{:x}", addr, value);
+    if addr == 0xff02 && value == 0x81 {
+      print!("{}", self.rb(0xff01) as char);
+    }
     match addr >> 12 {
       // ROM 0
-      0x0...0x3 => panic!("attempt to write to ROM: {}", addr),
+      0x0...0x3 => (),
       // ROM 1 (unbanked)
-      0x4...0x7 => panic!("attempt to write to ROM: {}", addr),
+      0x4...0x7 => (),
       // GPU VRAM
       0x8...0x9 => {
+        // if value != 6 {
+        //   println!("WRITE VRAM: 0x{:x} <- 0x{:x}", addr & 0x1fff, value);
+        // }
         self.gpu.vram[(addr & 0x1fff) as usize] = value;
         self.gpu.update_tile(addr);
       }
@@ -117,7 +129,10 @@ impl Memory {
               self.zram[(addr & 0x7f) as usize] = value
             } else {
               // I/O Control
-              return;
+              match (addr >> 4) & 0xf {
+                0x4...0x7 => self.gpu.wb(addr, value),
+                _ => (),
+              }
             }
           }
           _ => panic!("Invalid result of u16 >> 8 & 0xf"),

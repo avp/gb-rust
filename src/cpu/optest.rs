@@ -118,3 +118,12 @@ fn ld_r1_r2() {
 
   // TODO: Add tests for (HL) loads/stores.
 }
+
+#[test]
+fn sub() {
+  let (mut cpu, mut mem) = init();
+  cpu.regs.a = 0x42;
+  let f = cpu.regs.f;
+  run(&mut cpu, &mut mem, 0x97, 1, 1);
+  assert_eq!(cpu.regs.a, 0);
+}

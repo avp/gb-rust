@@ -7,6 +7,10 @@ use clap::{App, Arg};
 extern crate glium;
 use glium::glutin;
 
+#[macro_use]
+extern crate log;
+extern crate env_logger;
+
 use std::fs::File;
 use std::io;
 use std::io::Read;
@@ -22,6 +26,8 @@ struct Args {
 }
 
 fn main() {
+  env_logger::init().unwrap();
+
   let args = get_args();
 
   let rom;
@@ -37,11 +43,11 @@ fn main() {
     }
   }
 
-  let cpu = cpu::CPU::new();
-  let mem = mem::Memory::new(rom);
-  let display = display::Display::new();
+  let mut cpu = cpu::CPU::new();
+  let mut mem = mem::Memory::new(rom);
+  let mut display = display::Display::new();
 
-  run(cpu, mem, display);
+  run(&mut cpu, &mut mem, &mut display);
 }
 
 fn get_args() -> Args {
@@ -67,7 +73,11 @@ fn read_file(filename: &str) -> Result<Vec<u8>, io::Error> {
   Ok(result)
 }
 
-fn run(_: cpu::CPU, mut mem: mem::Memory, mut display: display::Display) {
+fn run(
+  cpu: &mut cpu::CPU,
+  mem: &mut mem::Memory,
+  display: &mut display::Display,
+) {
   let mut running = true;
 
   while running {
@@ -83,8 +93,10 @@ fn run(_: cpu::CPU, mut mem: mem::Memory, mut display: display::Display) {
       _ => (),
     });
 
-    let do_render = mem.gpu.step(4);
+    let t = cpu.step(mem);
+    let do_render = mem.gpu.step(t);
     if do_render {
+      debug!("Rendering frame");
       display.redraw(&*mem.gpu.frame);
     }
   }
