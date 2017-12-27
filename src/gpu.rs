@@ -4,6 +4,9 @@ pub type RGBAColor = (u8, u8, u8, u8);
 pub const HEIGHT: usize = 144;
 pub const WIDTH: usize = 160;
 
+const TILEMAP_HEIGHT: usize = 32;
+const TILEMAP_WIDTH: usize = 32;
+
 pub const VRAM_SIZE: usize = 0x2000;
 pub const OAM_SIZE: usize = 0xa0;
 
@@ -120,8 +123,8 @@ impl GPU {
     // Base address for this tile row.
     let addr = (addr & 0x1ffe) as usize;
 
-    let tile = ((addr >> 4) & 0x1ff) as usize;
-    let row = ((addr >> 1) & 0x7) as usize;
+    let tile = (addr / 16) as usize;
+    let row = ((addr / 2) % 8) as usize;
 
     if tile >= NUM_TILES {
       return;
@@ -189,34 +192,49 @@ impl GPU {
   }
 
   fn render_line(&mut self) {
+    // println!(
+    //   "scx={} scy={} bgmap={} bgtile={}",
+    //   self.scx,
+    //   self.scy,
+    //   self.bgmap,
+    //   self.bgtile
+    // );
     // Tile coordinate top left corner of the background.
     let row = (self.line + self.scy as usize) % 8;
     let mut col = (self.scx % 8) as usize;
 
-    let mapoffs = if self.bgmap { 0x1c00 } else { 0x1800 } +
-      (((self.line + self.scy as usize) % 256) >> 3) * 32;
+    let map_base = if self.bgmap { 0x1c00 } else { 0x1800 };
 
-    let mut lineoffs = (self.scy >> 3) as usize;
-    let mut tile = self.vram[mapoffs + lineoffs] as usize;
+    // Current screen line number + vertical scroll offset
+    // is the line of the bg.
+    // Confine it to the 256 possible tiles to ensure wraparound,
+    // divide by 8 pixels per tile,
+    // and multiply by TILEMAP_WIDTH tiles in each previous row of the map.
+    let map_row_offset = map_base +
+      ((((self.line + self.scy as usize) % 256) >> 3) * TILEMAP_WIDTH);
 
-    if self.bgtile && (tile as i16) < 0 {
-      tile = tile + 256;
-    }
+    // Add to that the horizontal offset (just offset / 8 pixels per tile).
+    let mut map_col_offset = ((self.scx >> 3) as usize % TILEMAP_WIDTH) as
+      usize;
+    let mut tile = self.vram[map_row_offset + map_col_offset] as usize +
+      if self.bgtile { 0 } else { 256 };
+
+    println!("{} 0x{:x}", self.line, tile);
 
     let line = self.line;
     for i in 0..WIDTH {
       let color = self.tileset[tile][row][col];
+
       self.set(line, i, color);
 
       col += 1;
       if col == 8 {
         // Read another tile since this one is done.
         col = 0;
-        lineoffs += 1;
-        tile = self.vram[mapoffs + lineoffs] as usize;
-        if self.bgtile && (tile as i16) < 0 {
-          tile = tile + 256;
-        }
+
+        map_col_offset = (map_col_offset + 1) % TILEMAP_WIDTH;
+        tile = self.vram[map_row_offset + map_col_offset] as usize +
+          if self.bgtile { 0 } else { 256 };
       }
     }
   }
