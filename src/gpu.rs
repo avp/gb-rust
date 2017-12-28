@@ -72,6 +72,8 @@ pub struct GPU {
   scx: u8,
   scy: u8,
   bg_palette: [u8; 4],
+  obj1_palette: [u8; 4],
+  obj2_palette: [u8; 4],
 
   tileset: Box<[Tile; NUM_TILES]>,
   objects: Box<[Object; NUM_OBJECTS]>,
@@ -102,6 +104,8 @@ impl GPU {
       scx: 0,
       scy: 0,
       bg_palette: [255, 192, 96, 0],
+      obj1_palette: [255, 192, 96, 0],
+      obj2_palette: [255, 192, 96, 0],
 
       tileset: Box::new([[[0; 8]; 8]; NUM_TILES]),
       objects: Box::new(objects),
@@ -218,13 +222,19 @@ impl GPU {
       }
       0xff42 => self.scy = value,
       0xff43 => self.scx = value,
-      0xff47 => {
+      0xff47...0xff49 => {
+        let pal = match addr {
+          0xff47 => &mut self.bg_palette,
+          0xff48 => &mut self.obj1_palette,
+          0xff49 => &mut self.obj2_palette,
+          _ => panic!(),
+        };
         for i in 0..4 {
           match (value >> (i * 2)) & 3 {
-            0 => self.bg_palette[i] = 255,
-            1 => self.bg_palette[i] = 192,
-            2 => self.bg_palette[i] = 96,
-            3 => self.bg_palette[i] = 0,
+            0 => pal[i] = 255,
+            1 => pal[i] = 192,
+            2 => pal[i] = 96,
+            3 => pal[i] = 0,
             _ => unimplemented!(),
           }
         }
@@ -232,17 +242,6 @@ impl GPU {
       _ => (),
     }
   }
-
-  // /// Get the value of the pixel at (row, col).
-  // fn get(&self, row: usize, col: usize) -> u8 {
-  //   self.render[row * WIDTH + col]
-  // }
-
-  // /// Set the value of the pixel at (row, col).
-  // fn set(&mut self, row: usize, col: usize, value: u8) {
-  //   assert!(value <= 3);
-  //   self.render[row * WIDTH + col] = value;
-  // }
 
   fn render_line(&mut self) {
     // Tile coordinate top left corner of the background.
