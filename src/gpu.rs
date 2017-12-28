@@ -71,7 +71,7 @@ pub struct GPU {
   switchlcd: bool,
   scx: u8,
   scy: u8,
-  palette: [u8; 4],
+  bg_palette: [u8; 4],
 
   tileset: Box<[Tile; NUM_TILES]>,
   objects: Box<[Object; NUM_OBJECTS]>,
@@ -101,7 +101,7 @@ impl GPU {
       switchlcd: false,
       scx: 0,
       scy: 0,
-      palette: [255, 192, 96, 0],
+      bg_palette: [255, 192, 96, 0],
 
       tileset: Box::new([[[0; 8]; 8]; NUM_TILES]),
       objects: Box::new(objects),
@@ -221,10 +221,10 @@ impl GPU {
       0xff47 => {
         for i in 0..4 {
           match (value >> (i * 2)) & 3 {
-            0 => self.palette[i] = 0,
-            1 => self.palette[i] = 1,
-            2 => self.palette[i] = 2,
-            3 => self.palette[i] = 3,
+            0 => self.bg_palette[i] = 255,
+            1 => self.bg_palette[i] = 192,
+            2 => self.bg_palette[i] = 96,
+            3 => self.bg_palette[i] = 0,
             _ => unimplemented!(),
           }
         }
@@ -233,16 +233,16 @@ impl GPU {
     }
   }
 
-  /// Get the value of the pixel at (row, col).
-  fn get(&self, row: usize, col: usize) -> u8 {
-    self.render[row * WIDTH + col]
-  }
+  // /// Get the value of the pixel at (row, col).
+  // fn get(&self, row: usize, col: usize) -> u8 {
+  //   self.render[row * WIDTH + col]
+  // }
 
-  /// Set the value of the pixel at (row, col).
-  fn set(&mut self, row: usize, col: usize, value: u8) {
-    assert!(value <= 3);
-    self.render[row * WIDTH + col] = value;
-  }
+  // /// Set the value of the pixel at (row, col).
+  // fn set(&mut self, row: usize, col: usize, value: u8) {
+  //   assert!(value <= 3);
+  //   self.render[row * WIDTH + col] = value;
+  // }
 
   fn render_line(&mut self) {
     // Tile coordinate top left corner of the background.
@@ -269,7 +269,7 @@ impl GPU {
     for i in 0..WIDTH {
       let color = self.tileset[tile][row][col];
 
-      self.set(line, i, color);
+      self.render[line * WIDTH + i] = self.bg_palette[color as usize];
 
       col += 1;
       if col == 8 {
@@ -285,11 +285,11 @@ impl GPU {
 
   fn render_frame(&mut self) {
     for i in 0..(WIDTH * HEIGHT) {
-      let color = self.render[i] as usize;
+      let color = self.render[i];
       let j = i * 4;
-      self.frame[j] = COLORS[self.palette[color] as usize];
-      self.frame[j + 1] = COLORS[self.palette[color] as usize];
-      self.frame[j + 2] = COLORS[self.palette[color] as usize];
+      self.frame[j] = color;
+      self.frame[j + 1] = color;
+      self.frame[j + 2] = color;
       // Full alpha value.
       self.frame[j + 3] = 255;
     }
