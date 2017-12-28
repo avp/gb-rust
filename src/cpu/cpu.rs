@@ -266,12 +266,12 @@ impl CPU {
         let hl = self.regs.hl();
         let n = $n;
         let res = hl.wrapping_add(n);
-        let res32 = u32::from(hl) + u32::from(n);
+        let res32 = (hl as u32) + (n as u32);
         let z = if self.regs.z() {reg::Z} else {0};
-        let h = if res32 > 0xfff {reg::H} else {0};
         let c = if res32 > 0xffff {reg::C} else {0};
+        let h = if (hl as u32 & 0xfff) > (res as u32 & 0xfff) {reg::H} else {0};
         self.regs.f = z | h | c;
-        self.regs.h = ((res & 0xff00) >> 8) as u8;
+        self.regs.h = (res >> 8) as u8;
         self.regs.l = (res & 0xff) as u8;
         2
       }}
@@ -806,7 +806,7 @@ impl CPU {
         // Add a signed 8-bit immediate to sp.
         // This requires casting to i8, sign extending, and then back to u16.
         let n = bump!() as i8 as i16;
-        let res = ((sp as i16) + n) as u16;
+        let res = ((sp as i16).wrapping_add(n)) as u16;
         // Sleight-of-hand to check the carry and half-carry flags
         // and handle both negative and non-negative cases elegantly.
         // Essentially spooky bit twiddling.
@@ -864,9 +864,9 @@ impl CPU {
       }
       0xf7 => rst!(0x30),
       0xf8 => {
-        let n = bump!() as i8 as i16;
+        let n = bump!() as i8 as i16 as u16;
         let sp = self.regs.sp;
-        let res = ((sp as i16) + n) as u16;
+        let res = ((sp as u16).wrapping_add(n)) as u16;
         self.regs.h = (res >> 8) as u8;
         self.regs.l = (res & 0xf) as u8;
         let tmp = (n as u16) ^ res ^ sp;
