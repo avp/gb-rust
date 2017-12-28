@@ -15,6 +15,8 @@ const NUM_OBJECTS: usize = 40;
 
 pub type Frame = [u8; 4 * WIDTH * HEIGHT];
 
+const COLORS: [u8; 4] = [255, 192, 96, 0];
+
 #[derive(Debug)]
 enum Mode {
   OAMRead = 2,
@@ -25,7 +27,7 @@ enum Mode {
 
 type Tile = [[u8; 8]; 8];
 
-#[derive(Debug, Copy)]
+#[derive(Debug, Copy, Clone)]
 struct Object {
   pub x: i8,
   pub y: i8,
@@ -33,7 +35,7 @@ struct Object {
   pub palette: bool,
   pub xflip: bool,
   pub yflip: bool,
-  pub priority: u32,
+  pub priority: bool,
   pub num: u32,
 }
 
@@ -46,7 +48,7 @@ impl Object {
       palette: false,
       xflip: false,
       yflip: false,
-      priority: 0,
+      priority: false,
       num: 0,
     }
   }
@@ -77,9 +79,9 @@ pub struct GPU {
 
 impl GPU {
   pub fn new() -> GPU {
-    let objects = [Object::new(); NUM_OBJECTS];
+    let mut objects = [Object::new(); NUM_OBJECTS];
     for i in 0..NUM_OBJECTS {
-      objects[i].num = i;
+      objects[i].num = i as u32;
     }
 
     GPU {
@@ -99,7 +101,7 @@ impl GPU {
       switchlcd: false,
       scx: 0,
       scy: 0,
-      bg_palette: [255, 192, 96, 0],
+      palette: [255, 192, 96, 0],
 
       tileset: Box::new([[[0; 8]; 8]; NUM_TILES]),
       objects: Box::new(objects),
@@ -175,13 +177,12 @@ impl GPU {
   }
 
   pub fn update_object(&mut self, addr: u16, val: u8) {
-    let i = addr >> 2;
-    let val: i8 = val as i8;
+    let i = (addr >> 2) as usize;
     if i < NUM_OBJECTS {
       match addr % 4 {
-        0 => self.objects[i].y = val - 16,
-        1 => self.objects[i].x = val - 8,
-        2 => self.objects[i].tile = val,
+        0 => self.objects[i].y = (val as i8) - 16,
+        1 => self.objects[i].x = (val as i8) - 8,
+        2 => self.objects[i].tile = val as u32,
         3 => {
           self.objects[i].palette = val & 0x10 != 0;
           self.objects[i].xflip = val & 0x20 != 0;
@@ -220,10 +221,10 @@ impl GPU {
       0xff47 => {
         for i in 0..4 {
           match (value >> (i * 2)) & 3 {
-            0 => self.palette[i] = 255,
-            1 => self.palette[i] = 192,
-            2 => self.palette[i] = 96,
-            3 => self.palette[i] = 0,
+            0 => self.palette[i] = 0,
+            1 => self.palette[i] = 1,
+            2 => self.palette[i] = 2,
+            3 => self.palette[i] = 3,
             _ => unimplemented!(),
           }
         }
@@ -286,9 +287,9 @@ impl GPU {
     for i in 0..(WIDTH * HEIGHT) {
       let color = self.render[i] as usize;
       let j = i * 4;
-      self.frame[j] = self.palette[color];
-      self.frame[j + 1] = self.palette[color];
-      self.frame[j + 2] = self.palette[color];
+      self.frame[j] = COLORS[self.palette[color] as usize];
+      self.frame[j + 1] = COLORS[self.palette[color] as usize];
+      self.frame[j + 2] = COLORS[self.palette[color] as usize];
       // Full alpha value.
       self.frame[j + 3] = 255;
     }
