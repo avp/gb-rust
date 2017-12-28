@@ -115,7 +115,6 @@ fn run(
     let t = cpu.step(mem);
     let do_render = mem.gpu.step(t);
     if do_render {
-      debug!("Rendering frame");
       display.redraw(&*mem.gpu.frame);
     }
   }
