@@ -171,7 +171,7 @@ impl CPU {
         self.regs.a = result;
         self.regs.f = reg::N;
         self.regs.f |= if result == 0 {reg::Z} else {0};
-        self.regs.f |= if a < n.wrapping_add(c) {reg::C} else {0};
+        self.regs.f |= if (a as u16) < (n as u16 + c as u16) {reg::C} else {0};
         self.regs.f |= if (a & 0xf) < ((n & 0xf) + c) {reg::H} else {0};
         1
       }}
@@ -373,10 +373,10 @@ impl CPU {
       0x05 => dec!(b),
       0x06 => ld_nn_n!(b),
       0x07 => {
-        let c = self.regs.a >> 7;
-        self.regs.a = (self.regs.a << 1) | c;
-        self.regs.f = if self.regs.a == 0 { reg::Z } else { 0 } |
-          if c == 1 { reg::C } else { 0 };
+        let c = if (self.regs.a & 0x80) == 0x80 { 1 } else { 0 };
+        let result = (self.regs.a << 1) | c;
+        self.regs.f = if c == 1 { reg::C } else { 0 };
+        self.regs.a = result;
         1
       }
       0x08 => {
@@ -394,8 +394,7 @@ impl CPU {
       0x0f => {
         let c = self.regs.a & 0x1;
         self.regs.a = (self.regs.a >> 1) | (c << 7);
-        self.regs.f = if self.regs.a == 0 { reg::Z } else { 0 } |
-          if c == 1 { reg::C } else { 0 };
+        self.regs.f = if c == 1 { reg::C } else { 0 };
         1
       }
 
@@ -410,11 +409,10 @@ impl CPU {
       0x15 => dec!(d),
       0x16 => ld_nn_n!(d),
       0x17 => {
-        let b7 = self.regs.a >> 7;
+        let b7 = if (self.regs.a & 0x80) != 0 { 1 } else { 0 };
         let c = if self.regs.c() { 1 } else { 0 };
         self.regs.a = (self.regs.a << 1) | c;
-        self.regs.f = if self.regs.a == 0 { reg::Z } else { 0 } |
-          if b7 == 1 { reg::C } else { 0 };
+        self.regs.f = if b7 == 1 { reg::C } else { 0 };
         1
       }
       0x18 => jr!(),
@@ -428,8 +426,7 @@ impl CPU {
         let b0 = self.regs.a & 0x1;
         let c = if self.regs.c() { 1 << 7 } else { 0 };
         self.regs.a = (self.regs.a >> 1) | c;
-        self.regs.f = if self.regs.a == 0 { reg::Z } else { 0 } |
-          if b0 == 1 { reg::C } else { 0 };
+        self.regs.f = if b0 == 1 { reg::C } else { 0 };
         1
       }
 
@@ -922,8 +919,7 @@ impl CPU {
       ($reg:expr, $time:expr) => {{
         let c = $reg >> 7;
         $reg = ($reg << 1) | c;
-        self.regs.f = if $reg == 0 { reg::Z } else { 0 } |
-          if c == 1 { reg::C } else { 0 };
+        self.regs.f = if c == 1 { reg::C } else { 0 };
         $time as u32
       }}
     }
@@ -932,8 +928,7 @@ impl CPU {
         let b7 = $reg >> 7;
         let c = if self.regs.c() { 1 } else { 0 };
         $reg = ($reg << 1) | c;
-        self.regs.f = if $reg == 0 { reg::Z } else { 0 } |
-          if b7 == 1 { reg::C } else { 0 };
+        self.regs.f = if b7 == 1 { reg::C } else { 0 };
         $time as u32
       }}
     }
@@ -942,8 +937,7 @@ impl CPU {
       ($reg:expr, $time:expr) => {{
         let c = $reg & 0x1;
         $reg = ($reg >> 1) | (c << 7);
-        self.regs.f = if $reg == 0 { reg::Z } else { 0 } |
-          if c == 1 { reg::C } else { 0 };
+        self.regs.f = if c == 1 { reg::C } else { 0 };
         $time as u32
       }}
     }
@@ -952,8 +946,7 @@ impl CPU {
         let b0 = $reg & 0x1;
         let c = if self.regs.c() { 1 } else { 0 };
         $reg = ($reg >> 1) | (c << 7);
-        self.regs.f = if $reg == 0 { reg::Z } else { 0 } |
-          if b0 == 1 { reg::C } else { 0 };
+        self.regs.f = if b0 == 1 { reg::C } else { 0 };
         $time as u32
       }}
     }
@@ -990,7 +983,10 @@ impl CPU {
     macro_rules! bit {
       ($reg:expr, $b:expr, $time:expr) => {{
         let b = (1 << $b) & $reg;
-        self.regs.f = reg::H | if b == 0 {reg::Z} else {0};
+        self.regs.f =
+            reg::H
+          | if b == 0 {reg::Z} else {0}
+          | if self.regs.c() {reg::C} else {0};
         $time as u32
       }}
     }
