@@ -77,7 +77,6 @@ impl Memory {
     self.wb(0xff4a, 0x00); // WY
     self.wb(0xff4b, 0x07); // WX, tweaked to position the window at (0, 0)
     self.wb(0xffff, 0x00); // IE
-
   }
 
   /// Read a byte at address `addr`.
@@ -92,16 +91,16 @@ impl Memory {
       // ERAM
       0xa...0xb => self.eram[(addr & 0x1fff) as usize],
       // WRAM
-      0xc...0xd => self.wram[(addr & 0x0fff) as usize],
+      0xc...0xd => self.wram[(addr & 0x1fff) as usize],
       // WRAM Shadow
-      0xe => self.wram[(addr & 0x0fff) as usize],
+      0xe => self.wram[(addr & 0x1fff) as usize],
       0xf => {
         match (addr >> 8) & 0xf {
           // WRAM Shadow
           0x0...0xd => self.wram[(addr & 0x1fff) as usize],
           // GPU OAM
           0xe => {
-            let idx = (addr & 0xff) as usize;
+            let idx = (addr & 0x100) as usize;
             if idx < gpu::OAM_SIZE {
               self.gpu.oam[idx]
             } else {
@@ -143,7 +142,6 @@ impl Memory {
 
   /// Write `value` at address `addr`.
   pub fn wb(&mut self, addr: u16, value: u8) {
-    // debug!("MMU: 0x{:x} <- 0x{:x}", addr, value);
     if addr == 0xff02 && value == 0x81 {
       print!("{}", self.rb(0xff01) as char);
     }
@@ -160,9 +158,9 @@ impl Memory {
       // ERAM
       0xa...0xb => self.eram[(addr & 0x1fff) as usize] = value,
       // WRAM
-      0xc...0xd => self.wram[(addr & 0x0fff) as usize] = value,
+      0xc...0xd => self.wram[(addr & 0x1fff) as usize] = value,
       // WRAM Shadow
-      0xe => self.wram[(addr & 0x0fff) as usize] = value,
+      0xe => self.wram[(addr & 0x1fff) as usize] = value,
       0xf => {
         match (addr >> 8) & 0xf {
           // WRAM Shadow
