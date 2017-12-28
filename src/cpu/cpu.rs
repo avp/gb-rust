@@ -503,24 +503,26 @@ impl CPU {
         2
       }
       0x33 => {
-        self.regs.sp.wrapping_add(1);
+        self.regs.sp = self.regs.sp.wrapping_add(1);
         2
       }
       0x34 => {
         let n = mem.rb(self.regs.hl());
         let c = if self.regs.c() { reg::C } else { 0 };
-        mem.wb(self.regs.hl(), n + 1);
-        self.regs.f = if n + 1 == 0 { reg::Z } else { 0 } |
+        let result = n.wrapping_add(1);
+        mem.wb(self.regs.hl(), result);
+        self.regs.f = if result == 0 { reg::Z } else { 0 } |
           if n & 0xf == 0xf { reg::H } else { 0 } | c;
         3
       }
       0x35 => {
-        let n = mem.rb(self.regs.hl());
+        let hl = self.regs.hl();
+        let n = mem.rb(hl);
         let c = if self.regs.c() { reg::C } else { 0 };
         let result = n.wrapping_sub(1);
-        mem.wb(self.regs.hl(), result);
-        self.regs.f = if result == 0 { reg::Z } else { 0 } |
-          if n & 0xf != 0 { reg::H } else { 0 } | c;
+        mem.wb(hl, result);
+        self.regs.f = reg::N | if result == 0 { reg::Z } else { 0 } |
+          if n & 0xf == 0 { reg::H } else { 0 } | c;
         3
       }
       0x36 => {
@@ -540,7 +542,7 @@ impl CPU {
         2
       }
       0x3b => {
-        self.regs.sp.wrapping_sub(1);
+        self.regs.sp = self.regs.sp.wrapping_sub(1);
         2
       }
       0x3c => inc!(a),
@@ -919,7 +921,8 @@ impl CPU {
       ($reg:expr, $time:expr) => {{
         let c = $reg >> 7;
         $reg = ($reg << 1) | c;
-        self.regs.f = if c == 1 { reg::C } else { 0 };
+        self.regs.f = if $reg == 0 {reg::Z} else {0} |
+          if c == 1 { reg::C } else { 0 };
         $time as u32
       }}
     }
@@ -928,7 +931,8 @@ impl CPU {
         let b7 = $reg >> 7;
         let c = if self.regs.c() { 1 } else { 0 };
         $reg = ($reg << 1) | c;
-        self.regs.f = if b7 == 1 { reg::C } else { 0 };
+        self.regs.f = if $reg == 0 {reg::Z} else {0} |
+          if b7 == 1 { reg::C } else { 0 };
         $time as u32
       }}
     }
@@ -937,7 +941,8 @@ impl CPU {
       ($reg:expr, $time:expr) => {{
         let c = $reg & 0x1;
         $reg = ($reg >> 1) | (c << 7);
-        self.regs.f = if c == 1 { reg::C } else { 0 };
+        self.regs.f = if $reg == 0 {reg::Z} else {0} |
+          if c == 1 { reg::C } else { 0 };
         $time as u32
       }}
     }
@@ -946,7 +951,8 @@ impl CPU {
         let b0 = $reg & 0x1;
         let c = if self.regs.c() { 1 } else { 0 };
         $reg = ($reg >> 1) | (c << 7);
-        self.regs.f = if b0 == 1 { reg::C } else { 0 };
+        self.regs.f = if $reg == 0 {reg::Z} else {0} |
+          if b0 == 1 { reg::C } else { 0 };
         $time as u32
       }}
     }
@@ -1004,15 +1010,14 @@ impl CPU {
     }
 
     macro_rules! swap {
-      ($reg:ident) => {{
-        let top = self.regs.$reg >> 4;
-        let bot = self.regs.$reg & 0xf;
-        self.regs.$reg = (bot << 4) | top;
-        self.regs.f = 0;
-        if self.regs.$reg == 0 {
-          self.regs.f |= reg::Z;
-        }
-        2
+      ($reg:expr, $time:expr) => {{
+        let n = $reg;
+        let top = n >> 4;
+        let bot = n & 0xf;
+        let result = (bot << 4) | top;
+        $reg = result;
+        self.regs.f = if result == 0 {reg::Z} else {0};
+        $time as u32
       }}
     }
 
@@ -1068,20 +1073,14 @@ impl CPU {
       0x2e => do_hl!(hl, sra!(hl, 1), 4),
       0x2f => sra!(self.regs.a, 2),
 
-      0x30 => swap!(b),
-      0x31 => swap!(c),
-      0x32 => swap!(d),
-      0x33 => swap!(e),
-      0x34 => swap!(h),
-      0x35 => swap!(l),
-      0x36 => {
-        let byte = mem.rb(self.regs.hl());
-        let top = byte >> 4;
-        let bot = byte & 0xf;
-        mem.wb(self.regs.hl(), (bot << 4) | top);
-        4
-      }
-      0x37 => swap!(a),
+      0x30 => swap!(self.regs.b, 2),
+      0x31 => swap!(self.regs.c, 2),
+      0x32 => swap!(self.regs.d, 2),
+      0x33 => swap!(self.regs.e, 2),
+      0x34 => swap!(self.regs.h, 2),
+      0x35 => swap!(self.regs.l, 2),
+      0x36 => do_hl!(hl, swap!(hl, 1), 4),
+      0x37 => swap!(self.regs.a, 2),
       0x38 => srl!(self.regs.b, 2),
       0x39 => srl!(self.regs.c, 2),
       0x3a => srl!(self.regs.d, 2),

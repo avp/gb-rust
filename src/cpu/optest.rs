@@ -160,3 +160,22 @@ fn rra() {
   assert_eq!(cpu.regs.a, 0x80);
   assert_eq!(cpu.regs.f, 0x10);
 }
+
+#[test]
+fn rlc_hl() {
+  let (mut cpu, mut mem) = init();
+  cpu.regs.h = 0xff;
+  cpu.regs.l = 0x80;
+
+  mem.wb(0xff80, 0x81);
+  mem.wb(cpu.regs.pc + 1, 0x06);
+  run(&mut cpu, &mut mem, 0xcb, 2, 4);
+  assert_eq!(mem.rb(0xff80), 0x03);
+  assert_eq!(cpu.regs.f, 0x10);
+
+  mem.wb(0xff80, 0x01);
+  mem.wb(cpu.regs.pc + 1, 0x06);
+  run(&mut cpu, &mut mem, 0xcb, 2, 4);
+  assert_eq!(mem.rb(0xff80), 0x02);
+  assert_eq!(cpu.regs.f, 0x00);
+}
