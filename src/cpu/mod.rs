@@ -10,6 +10,9 @@ pub struct CPU {
 
   halt: bool,
   stop: bool,
+
+  /// IME flag for global interrupt enable/disable.
+  pub ime: bool,
 }
 
 #[cfg(test)]

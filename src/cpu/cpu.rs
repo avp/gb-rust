@@ -12,6 +12,8 @@ impl CPU {
       t: 0,
       halt: false,
       stop: false,
+
+      ime: true,
     }
   }
 
@@ -761,7 +763,7 @@ impl CPU {
       0xd7 => rst!(0x10),
       0xd8 => retc!(self.regs.c()),
       0xd9 => {
-        // TODO: Enable interrupts.
+        self.ime = true;
         ret!()
       }
       0xda => jpc!(self.regs.c()),
@@ -845,7 +847,7 @@ impl CPU {
         2
       }
       0xf3 => {
-        // TODO: Disable interrupts.
+        self.ime = false;
         1
       }
       0xf4 => xx!(),
@@ -882,7 +884,7 @@ impl CPU {
         4
       }
       0xfb => {
-        // TODO: Disable interrupts.
+        self.ime = true;
         1
       }
       0xfc => xx!(),
@@ -1295,5 +1297,22 @@ impl CPU {
 
       _ => panic!("Inexhaustive match"),
     }
+  }
+
+  /// Interrupt handler, jumps to 0x40.
+  pub fn handle_interrupt(&mut self, mem: &mut Memory, target: u16) -> u32 {
+    self.ime = false;
+
+    let pc = self.regs.pc;
+    self.push(mem, pc);
+    self.regs.pc = target;
+
+    let m = 3;
+    self.regs.m = m;
+    self.regs.t = 4 * m;
+    self.m += self.regs.m;
+    self.t += self.regs.t;
+
+    self.regs.t
   }
 }

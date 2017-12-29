@@ -22,6 +22,9 @@ pub struct Memory {
   sb: u8,
   sc: u8,
 
+  pub interrupt_enable: u8,
+  pub interrupt_flags: u8,
+
   pub gpu: Box<gpu::GPU>,
 }
 
@@ -37,6 +40,9 @@ impl Memory {
 
       sb: 0,
       sc: 0,
+
+      interrupt_enable: 0,
+      interrupt_flags: 0,
 
       gpu: Box::new(gpu::GPU::new()),
     };
@@ -108,7 +114,9 @@ impl Memory {
             }
           }
           0xf => {
-            if addr >= 0xff80 {
+            if addr == 0xffff {
+              self.interrupt_enable
+            } else if addr >= 0xff80 {
               // Zero page.
               self.zram[(addr & 0x7f) as usize]
             } else if addr >= 0xff40 {
@@ -122,6 +130,7 @@ impl Memory {
                 0x00 => self.key.rb(),
                 0x01 => self.sb,
                 0x02 => self.sc,
+                0x0f => self.interrupt_flags,
                 _ => 0,
               }
             }
@@ -175,7 +184,9 @@ impl Memory {
             }
           }
           0xf => {
-            if addr >= 0xff80 {
+            if addr == 0xffff {
+              self.interrupt_enable = value;
+            } else if addr >= 0xff80 {
               // Zero page.
               self.zram[(addr & 0x7f) as usize] = value
             } else if addr >= 0xff40 {
@@ -189,6 +200,7 @@ impl Memory {
                 0x00 => self.key.wb(value),
                 0x01 => self.sb = value,
                 0x02 => self.sc = value,
+                0x0f => self.interrupt_flags = value,
                 _ => (),
               }
             }

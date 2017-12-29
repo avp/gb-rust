@@ -81,10 +81,43 @@ fn run(
   let mut running = true;
 
   while running {
-    let t = cpu.step(mem);
+    let mut t = cpu.step(mem);
+
+    // Handle interrupts.
+    if cpu.ime && mem.interrupt_enable != 0 && mem.interrupt_flags != 0 {
+      let mask = mem.interrupt_enable & mem.interrupt_flags;
+
+      if mask & 0x01 != 0 {
+        // VBlank
+        mem.interrupt_flags &= !0x01;
+        t += cpu.handle_interrupt(mem, 0x40);
+      }
+      if mask & 0x02 != 0 {
+        // LCD Status
+        mem.interrupt_flags &= !0x02;
+        t += cpu.handle_interrupt(mem, 0x48);
+      }
+      if mask & 0x04 != 0 {
+        // Timer overflow
+        mem.interrupt_flags &= !0x04;
+        t += cpu.handle_interrupt(mem, 0x50);
+      }
+      if mask & 0x08 != 0 {
+        // Serial link
+        mem.interrupt_flags &= !0x08;
+        t += cpu.handle_interrupt(mem, 0x58);
+      }
+      if mask & 0x10 != 0 {
+        // Joypad press
+        mem.interrupt_flags &= !0x10;
+        t += cpu.handle_interrupt(mem, 0x60);
+      }
+    }
+
     let do_render = mem.gpu.step(t);
     if do_render {
       display.redraw(&*mem.gpu.frame);
+      mem.interrupt_flags |= 0x1;
       display.events_loop.poll_events(|event| match event {
         glutin::Event::WindowEvent { event, .. } => {
           match event {
@@ -99,6 +132,7 @@ fn run(
             glutin::DeviceEvent::Key(k) => {
               if let Some(keycode) = k.virtual_keycode {
                 if let Some(key) = mem::Key::from_code(keycode) {
+                  mem.interrupt_flags |= 0x10;
                   match k.state {
                     glutin::ElementState::Pressed => {
                       mem.key_down(key);

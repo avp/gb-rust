@@ -132,7 +132,6 @@ impl GPU {
         if self.mode_clock >= 172 {
           self.mode_clock = 0;
           self.mode = Mode::HBlank;
-
           self.render_line();
         }
       }
@@ -143,6 +142,7 @@ impl GPU {
           if self.line == HEIGHT - 1 {
             self.mode = Mode::VBlank;
             self.render_frame();
+
             return true;
           } else {
             self.mode = Mode::OAMRead;
