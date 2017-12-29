@@ -787,8 +787,8 @@ impl CPU {
         mem.wb(0xff00 + u16::from(self.regs.c), self.regs.a);
         2
       }
-      0xe3 => unimplemented!(),
-      0xe4 => unimplemented!(),
+      0xe3 => xx!(),
+      0xe4 => xx!(),
       0xe5 => push!(hl),
       0xe6 => {
         let n = bump!();

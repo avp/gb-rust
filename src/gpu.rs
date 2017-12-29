@@ -319,7 +319,7 @@ impl GPU {
         usize;
       let mut tile = self.vram[map_row_offset + map_col_offset] as u16;
       if !self.bgtile {
-        tile = ((tile as i16) + 127) as u16;
+        tile = (tile as i8 as i16 + 256) as u16;
       };
 
       let line = self.line;
@@ -338,7 +338,7 @@ impl GPU {
           map_col_offset = (map_col_offset + 1) % TILEMAP_WIDTH;
           tile = self.vram[map_row_offset + map_col_offset] as u16;
           if !self.bgtile {
-            tile = ((tile as i16) + 127) as u16;
+            tile = (tile as i8 as i16 + 256) as u16;
           };
         }
       }
