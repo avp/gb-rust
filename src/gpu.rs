@@ -220,7 +220,7 @@ impl GPU {
           self.objects[i].palette = val & 0x10 != 0;
           self.objects[i].xflip = val & 0x20 != 0;
           self.objects[i].yflip = val & 0x40 != 0;
-          self.objects[i].priority = val & 0x80 != 0;
+          self.objects[i].priority = val & 0x80 == 0;
         }
         _ => panic!("addr % 4 > 3"),
       }
