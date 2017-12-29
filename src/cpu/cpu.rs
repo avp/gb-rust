@@ -857,15 +857,20 @@ impl CPU {
       }
       0xf7 => rst!(0x30),
       0xf8 => {
-        let n = bump!() as i8 as i16 as u16;
         let sp = self.regs.sp;
-        let res = ((sp as u16).wrapping_add(n)) as u16;
-        self.regs.h = (res >> 8) as u8;
-        self.regs.l = (res & 0xf) as u8;
+        // Add a signed 8-bit immediate to sp.
+        // This requires casting to i8, sign extending, and then back to u16.
+        let n = bump!() as i8 as i16;
+        let res = ((sp as i16).wrapping_add(n)) as u16;
+        // Sleight-of-hand to check the carry and half-carry flags
+        // and handle both negative and non-negative cases elegantly.
+        // Essentially spooky bit twiddling.
         let tmp = (n as u16) ^ res ^ sp;
         self.regs.f = if tmp & 0x100 != 0 { reg::C } else { 0 } |
           if tmp & 0x010 != 0 { reg::H } else { 0 };
-        3
+        self.regs.h = (res >> 8) as u8;
+        self.regs.l = (res & 0xff) as u8;
+        4
       }
       0xf9 => {
         self.regs.sp = self.regs.hl();
