@@ -131,6 +131,10 @@ impl GPU {
   /// Step the GPU by t cycles.
   /// Return interrupt flags that have been set.
   pub fn step(&mut self, t: u32) -> u8 {
+    if !self.switchlcd {
+      return 0;
+    }
+
     self.mode_clock += t;
 
     let mut int = 0;
@@ -308,17 +312,20 @@ impl GPU {
       // divide by 8 pixels per tile,
       // and multiply by TILEMAP_WIDTH tiles in each previous row of the map.
       let map_row_offset = map_base +
-        ((((self.line + self.scy as usize) % 256) >> 3) * TILEMAP_WIDTH);
+        ((((self.line + self.scy as usize) % 256) / 8) * TILEMAP_WIDTH);
 
       // Add to that the horizontal offset (just offset / 8 pixels per tile).
-      let mut map_col_offset = ((self.scx >> 3) as usize % TILEMAP_WIDTH) as
+      let mut map_col_offset = ((self.scx / 8) as usize % TILEMAP_WIDTH) as
         usize;
-      let mut tile = self.vram[map_row_offset + map_col_offset] as usize +
-        if self.bgtile { 0 } else { 256 };
+      let mut tile = self.vram[map_row_offset + map_col_offset] as u16;
+      if !self.bgtile {
+        tile = ((tile as i16) + 127) as u16;
+      };
 
       let line = self.line;
       for i in 0..WIDTH {
-        let color = self.tileset[tile][row][col];
+        info!("Coords {}:{} Tile {}", self.line, i, tile);
+        let color = self.tileset[tile as usize][row][col];
 
         self.render[line * WIDTH + i] = self.bg_palette[color as usize];
         scanrow[i] = color;
@@ -329,8 +336,10 @@ impl GPU {
           col = 0;
 
           map_col_offset = (map_col_offset + 1) % TILEMAP_WIDTH;
-          tile = self.vram[map_row_offset + map_col_offset] as usize +
-            if self.bgtile { 0 } else { 256 };
+          tile = self.vram[map_row_offset + map_col_offset] as u16;
+          if !self.bgtile {
+            tile = ((tile as i16) + 127) as u16;
+          };
         }
       }
     }

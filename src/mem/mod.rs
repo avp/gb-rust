@@ -162,6 +162,7 @@ impl Memory {
       0x4...0x7 => (),
       // GPU VRAM
       0x8...0x9 => {
+        debug!("VRAM: 0x{:04x} <- 0x{:02x}", addr, value);
         self.gpu.vram[(addr & 0x1fff) as usize] = value;
         self.gpu.update_tile(addr);
       }
