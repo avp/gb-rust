@@ -297,9 +297,9 @@ impl CPU {
 
     macro_rules! jr {
       () => {{
-        let n = bump!() as i8 as i16;
+        let n = bump!() as i8 as i32;
         let pc = self.regs.pc;
-        let target = ((pc as i16) + n) as u16;
+        let target = ((pc as u32 as i32) + n) as u16;
         self.regs.pc = target;
         3
       }}
@@ -358,7 +358,6 @@ impl CPU {
         if $e {
           ret!()
         } else {
-          self.regs.pc += 2;
           2
         }
       }}
@@ -734,12 +733,7 @@ impl CPU {
       0xc7 => rst!(0x00),
       0xc8 => retc!(self.regs.z()),
       0xc9 => ret!(),
-      0xca => {
-        if self.regs.z() {
-          self.regs.pc = read_u16_le!();
-        }
-        3
-      }
+      0xca => jpc!(self.regs.z()),
       0xcb => self.exec_cb(mem),
       0xcc => callc!(self.regs.z()),
       0xcd => {
