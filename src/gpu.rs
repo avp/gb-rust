@@ -185,7 +185,7 @@ impl GPU {
   }
 
   pub fn update_object(&mut self, addr: u16, val: u8) {
-    let i = (addr >> 2) as usize;
+    let i = ((addr & 0xff) / 4) as usize;
     if i < NUM_OBJECTS {
       match addr % 4 {
         0 => self.objects[i].y = (val as i8 as i32) - 16,
@@ -295,17 +295,14 @@ impl GPU {
 
     if self.switchobj {
       for i in 0..NUM_OBJECTS {
-        let object = &self.objects[i];
+        let object = self.objects[i];
 
         if object.y <= (self.line as i32) && (object.y + 8) > self.line as i32 {
-          debug!("Rendering object: {:?}", object);
-          let pal = &mut if object.palette {
+          let pal = if object.palette {
             self.obj1_palette
           } else {
             self.obj0_palette
           };
-
-          let mut canvasoffs = ((self.line * WIDTH) as i32 + object.x) as usize;
 
           let tilerow = if object.yflip {
             self.tileset[object.tile][7 -
@@ -314,16 +311,17 @@ impl GPU {
             self.tileset[object.tile][(self.line as i32 - object.y) as usize]
           };
 
-          for x in 0i32..8i32 {
-            if (object.x + x) >= 0 && (object.x + x) < WIDTH as i32 &&
-              tilerow[x as usize] != 0 &&
-              (object.priority || scanrow[(object.x + x) as usize] != 0)
-            {
+          for x in 0..8 {
+            if 0 <= (object.x + x) && (object.x + x) < WIDTH as i32 {
               let tilerow_idx = if object.xflip { 7 - x } else { x } as usize;
               let color = pal[tilerow[tilerow_idx] as usize];
-
-              self.render[canvasoffs] = color;
-              canvasoffs += 1;
+              if tilerow[tilerow_idx] != 0 {
+                if object.priority || scanrow[(object.x + x) as usize] == 0 {
+                  let _row = self.line;
+                  let _col = (object.x + x) as usize;
+                  self.set_color(_row, _col, color);
+                }
+              }
             }
           }
         }
@@ -341,5 +339,9 @@ impl GPU {
       // Full alpha value.
       self.frame[j + 3] = 255;
     }
+  }
+
+  fn set_color(&mut self, row: usize, col: usize, value: u8) {
+    self.render[(row * WIDTH) + col] = value;
   }
 }

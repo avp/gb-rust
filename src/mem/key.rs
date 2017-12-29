@@ -55,7 +55,7 @@ impl KeyData {
   }
 
   pub fn key_down(&mut self, key: Key) {
-    info!("Pressed {:?}. Key = {:?}", key, &self);
+    debug!("Pressed {:?}. Key = {:?}", key, &self);
     match key {
       Key::Right => self.rows.1 &= 0xe,
       Key::Left => self.rows.1 &= 0xd,
@@ -69,7 +69,7 @@ impl KeyData {
   }
 
   pub fn key_up(&mut self, key: Key) {
-    info!("Released {:?}. Key = {:?}", key, &self);
+    debug!("Released {:?}. Key = {:?}", key, &self);
     match key {
       Key::Right => self.rows.1 |= 0x1,
       Key::Left => self.rows.1 |= 0x2,
