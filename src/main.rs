@@ -81,41 +81,40 @@ fn run(
   let mut running = true;
 
   while running {
-    display.events_loop.poll_events(|event| match event {
-      glutin::Event::WindowEvent { event, .. } => {
-        match event {
-          glutin::WindowEvent::Closed => {
-            running = false;
-          }
-          _ => (),
-        }
-      }
-      glutin::Event::DeviceEvent { event, .. } => {
-        match event {
-          glutin::DeviceEvent::Key(k) => {
-            if let Some(keycode) = k.virtual_keycode {
-              if let Some(key) = mem::Key::from_code(keycode) {
-                match k.state {
-                  glutin::ElementState::Pressed => {
-                    mem.key_down(key);
-                  }
-                  glutin::ElementState::Released => {
-                    mem.key_up(key);
-                  }
-                }
-              }
-            }
-          }
-          _ => (),
-        }
-      }
-      _ => (),
-    });
-
     let t = cpu.step(mem);
     let do_render = mem.gpu.step(t);
     if do_render {
       display.redraw(&*mem.gpu.frame);
+      display.events_loop.poll_events(|event| match event {
+        glutin::Event::WindowEvent { event, .. } => {
+          match event {
+            glutin::WindowEvent::Closed => {
+              running = false;
+            }
+            _ => (),
+          }
+        }
+        glutin::Event::DeviceEvent { event, .. } => {
+          match event {
+            glutin::DeviceEvent::Key(k) => {
+              if let Some(keycode) = k.virtual_keycode {
+                if let Some(key) = mem::Key::from_code(keycode) {
+                  match k.state {
+                    glutin::ElementState::Pressed => {
+                      mem.key_down(key);
+                    }
+                    glutin::ElementState::Released => {
+                      mem.key_up(key);
+                    }
+                  }
+                }
+              }
+            }
+            _ => (),
+          }
+        }
+        _ => (),
+      });
     }
   }
 }
