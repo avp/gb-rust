@@ -297,6 +297,7 @@ impl GPU {
       for i in 0..NUM_OBJECTS {
         let object = self.objects[i];
 
+        // info!("Rendering object {} at {:?}", i, (object.y, object.x));
         if object.y <= (self.line as i32) && (object.y + 8) > self.line as i32 {
           let pal = if object.palette {
             self.obj1_palette
@@ -304,19 +305,20 @@ impl GPU {
             self.obj0_palette
           };
 
+          let tile = object.tile;
           let tilerow = if object.yflip {
-            self.tileset[object.tile][7 -
-                                        (self.line as i32 - object.y) as usize]
+            self.tileset[tile][7 - (self.line as i32 - object.y) as usize]
           } else {
-            self.tileset[object.tile][(self.line as i32 - object.y) as usize]
+            self.tileset[tile][(self.line as i32 - object.y) as usize]
           };
 
           for x in 0..8 {
             if 0 <= (object.x + x) && (object.x + x) < WIDTH as i32 {
               let tilerow_idx = if object.xflip { 7 - x } else { x } as usize;
-              let color = pal[tilerow[tilerow_idx] as usize];
-              if tilerow[tilerow_idx] != 0 {
+              let pal_idx = tilerow[tilerow_idx] as usize;
+              if pal_idx != 0 {
                 if object.priority || scanrow[(object.x + x) as usize] == 0 {
+                  let color = pal[pal_idx];
                   let _row = self.line;
                   let _col = (object.x + x) as usize;
                   self.set_color(_row, _col, color);

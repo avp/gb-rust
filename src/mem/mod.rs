@@ -177,7 +177,7 @@ impl Memory {
           // GPU OAM
           0xe => {
             let idx = (addr & 0xff) as usize;
-            debug!("OAM: {} <- {}", idx, value);
+            info!("OAM: {} <- {}", idx, value);
             if idx < gpu::OAM_SIZE {
               self.gpu.oam[idx] = value;
               self.gpu.update_object(addr, value);
