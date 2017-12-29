@@ -17,7 +17,7 @@ pub type Frame = [u8; 4 * WIDTH * HEIGHT];
 
 const COLORS: [u8; 4] = [255, 192, 96, 0];
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 enum Mode {
   OAMRead = 2,
   VRAMRead = 3,
@@ -64,6 +64,7 @@ pub struct GPU {
   mode: Mode,
   mode_clock: u32,
   line: usize,
+  lyc: u8,
 
   bgmap: bool,
   bgtile: bool,
@@ -76,6 +77,11 @@ pub struct GPU {
   switchobj: bool,
   obj0_palette: [u8; 4],
   obj1_palette: [u8; 4],
+
+  lycly: bool,
+  mode0int: bool,
+  mode1int: bool,
+  mode2int: bool,
 
   tileset: Box<[Tile; NUM_TILES]>,
   objects: Box<[Object; NUM_OBJECTS]>,
@@ -98,6 +104,7 @@ impl GPU {
       mode: Mode::HBlank,
       mode_clock: 0,
       line: 0,
+      lyc: 0,
 
       bgmap: false,
       bgtile: false,
@@ -111,15 +118,22 @@ impl GPU {
       obj0_palette: [255, 192, 96, 0],
       obj1_palette: [255, 192, 96, 0],
 
+      lycly: false,
+      mode0int: false,
+      mode1int: false,
+      mode2int: false,
+
       tileset: Box::new([[[0; 8]; 8]; NUM_TILES]),
       objects: Box::new(objects),
     }
   }
 
   /// Step the GPU by t cycles.
-  /// Return true if the display must be redrawn.
-  pub fn step(&mut self, t: u32) -> bool {
+  /// Return interrupt flags that have been set.
+  pub fn step(&mut self, t: u32) -> u8 {
     self.mode_clock += t;
+
+    let mut int = 0;
 
     match self.mode {
       Mode::OAMRead => {
@@ -133,6 +147,9 @@ impl GPU {
           self.mode_clock = 0;
           self.mode = Mode::HBlank;
           self.render_line();
+          // if self.mode0int {
+          //   int |= 0x02;
+          // }
         }
       }
       Mode::HBlank => {
@@ -142,10 +159,15 @@ impl GPU {
           if self.line == HEIGHT - 1 {
             self.mode = Mode::VBlank;
             self.render_frame();
-
-            return true;
+            int |= 0x01;
+          // if self.mode1int {
+          //   int |= 0x02;
+          // }
           } else {
             self.mode = Mode::OAMRead;
+            // if self.mode2int {
+            //   int |= 0x02;
+            // }
           }
         }
       }
@@ -157,11 +179,14 @@ impl GPU {
           if self.line > (HEIGHT - 1) + 10 {
             self.mode = Mode::OAMRead;
             self.line = 0;
+            // if self.mode2int {
+            //   int |= 0x02;
+            // }
           }
         }
       }
     }
-    false
+    int
   }
 
   pub fn update_tile(&mut self, addr: u16) {
@@ -188,8 +213,8 @@ impl GPU {
     let i = ((addr & 0xff) / 4) as usize;
     if i < NUM_OBJECTS {
       match addr % 4 {
-        0 => self.objects[i].y = (val as i8 as i32) - 16,
-        1 => self.objects[i].x = (val as i8 as i32) - 8,
+        0 => self.objects[i].y = ((val as i8 as i32) - 16) as u8 as i32,
+        1 => self.objects[i].x = ((val as i8 as i32) - 8) as u8 as i32,
         2 => self.objects[i].tile = val as usize,
         3 => {
           self.objects[i].palette = val & 0x10 != 0;
@@ -197,8 +222,9 @@ impl GPU {
           self.objects[i].yflip = val & 0x40 != 0;
           self.objects[i].priority = val & 0x80 != 0;
         }
-        _ => panic!("addr % 4> 3"),
+        _ => panic!("addr % 4 > 3"),
       }
+      debug!("Updated object {}: {:?}", i, self.objects[i]);
     }
   }
 
@@ -211,9 +237,17 @@ impl GPU {
           (if self.bgtile { 0x10 } else { 0 }) |
           (if self.switchlcd { 0x80 } else { 0 })
       }
+      0xff41 => {
+        0
+        // ((self.lycly as u8) << 6) | ((self.mode2int as u8) << 5) |
+        //   ((self.mode1int as u8) << 4) | ((self.mode0int as u8) << 3) |
+        //   ((if self.lyc as usize == self.line { 1 } else { 0 }) << 2) |
+        //   ((self.mode as u8) << 0)
+      }
       0xff42 => self.scy,
       0xff43 => self.scx,
       0xff44 => self.line as u8,
+      0xff45 => self.lyc,
       _ => 0,
     }
   }
@@ -227,8 +261,16 @@ impl GPU {
         self.bgtile = (value & 0x10) != 0;
         self.switchlcd = (value & 0x80) != 0;
       }
+      0xff41 => {
+        self.lycly = (value >> 6) & 1 != 0;
+        self.mode2int = (value >> 5) & 1 != 0;
+        self.mode1int = (value >> 4) & 1 != 0;
+        self.mode0int = (value >> 3) & 1 != 0;
+      }
       0xff42 => self.scy = value,
       0xff43 => self.scx = value,
+      0xff45 => self.lyc = value,
+      0xff46 => {}
       0xff47...0xff49 => {
         let pal = match addr {
           0xff47 => &mut self.bg_palette,
@@ -297,7 +339,7 @@ impl GPU {
       for i in 0..NUM_OBJECTS {
         let object = self.objects[i];
 
-        // info!("Rendering object {} at {:?}", i, (object.y, object.x));
+        debug!("Rendering object {} at {:?}", i, (object.y, object.x));
         if object.y <= (self.line as i32) && (object.y + 8) > self.line as i32 {
           let pal = if object.palette {
             self.obj1_palette

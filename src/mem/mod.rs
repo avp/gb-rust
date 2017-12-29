@@ -106,7 +106,8 @@ impl Memory {
           0x0...0xd => self.wram[(addr & 0x1fff) as usize],
           // GPU OAM
           0xe => {
-            let idx = (addr & 0x100) as usize;
+            let idx = (addr & 0xff) as usize;
+            // info!("OAM READ: 0x{:02x} -> {}", idx, self.gpu.oam[idx]);
             if idx < gpu::OAM_SIZE {
               self.gpu.oam[idx]
             } else {
@@ -177,7 +178,7 @@ impl Memory {
           // GPU OAM
           0xe => {
             let idx = (addr & 0xff) as usize;
-            info!("OAM: {} <- {}", idx, value);
+            info!("OAM: 0x{:02x} <- {}", idx, value);
             if idx < gpu::OAM_SIZE {
               self.gpu.oam[idx] = value;
               self.gpu.update_object(addr, value);
@@ -190,7 +191,14 @@ impl Memory {
               // Zero page.
               self.zram[(addr & 0x7f) as usize] = value
             } else if addr >= 0xff40 {
-              // I/O Control
+              // OAM DMA?
+              if addr == 0xff46 {
+                for i in 0..160 {
+                  let v = self.rb(((value as u16) << 8) + i);
+                  self.wb(0xfe00 + i, v);
+                }
+              }
+
               match (addr >> 4) & 0xf {
                 0x4...0x7 => self.gpu.wb(addr, value),
                 _ => (),
