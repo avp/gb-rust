@@ -103,11 +103,11 @@ fn run(
         mem.interrupt_flags &= !0x01;
         t += cpu.handle_interrupt(mem, 0x40);
       }
-      // if mask & 0x02 != 0 {
-      //   // LCD Status
-      //   mem.interrupt_flags &= !0x02;
-      //   t += cpu.handle_interrupt(mem, 0x48);
-      // }
+      if mask & 0x02 != 0 {
+        // LCD Status
+        mem.interrupt_flags &= !0x02;
+        t += cpu.handle_interrupt(mem, 0x48);
+      }
       if mask & 0x04 != 0 {
         // Timer overflow
         mem.interrupt_flags &= !0x04;
@@ -125,11 +125,11 @@ fn run(
       }
     }
 
-    let ints = mem.gpu.step(t);
+    let ints = mem.step(t);
     mem.interrupt_flags |= ints;
 
     if ints & 0x1 != 0 {
-      display.redraw(&*mem.gpu.frame);
+      display.redraw(mem.frame());
       display.events_loop.poll_events(|event| match event {
         glutin::Event::WindowEvent { event, .. } => {
           match event {

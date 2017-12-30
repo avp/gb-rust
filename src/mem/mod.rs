@@ -2,6 +2,7 @@
 
 mod bios;
 mod key;
+mod timer;
 
 pub use self::key::Key;
 use self::key::KeyData;
@@ -80,7 +81,8 @@ pub struct Memory {
   pub interrupt_enable: u8,
   pub interrupt_flags: u8,
 
-  pub gpu: Box<gpu::GPU>,
+  gpu: Box<gpu::GPU>,
+  timer: Box<timer::Timer>,
 }
 
 impl Memory {
@@ -122,6 +124,7 @@ impl Memory {
       interrupt_flags: 0,
 
       gpu: Box::new(gpu::GPU::new()),
+      timer: Box::new(timer::Timer::new()),
     };
     result.power_on();
     Ok(result)
@@ -160,6 +163,21 @@ impl Memory {
     self.wb(0xff4a, 0x00); // WY
     self.wb(0xff4b, 0x07); // WX, tweaked to position the window at (0, 0)
     self.wb(0xffff, 0x00); // IE
+  }
+
+  /// Steps the MMU by t t-time.
+  pub fn step(&mut self, t: u32) -> u8 {
+    let mut int = 0;
+    int |= self.gpu.step(t);
+    if self.timer.inc(t / 4) {
+      int |= 0x40;
+    };
+    int
+  }
+
+  /// Return a reference to the current frame to draw.
+  pub fn frame(&self) -> &gpu::Frame {
+    &self.gpu.frame
   }
 
   /// Read a byte at address `addr`.
@@ -208,6 +226,10 @@ impl Memory {
                 0x00 => self.key.rb(),
                 0x01 => self.sb,
                 0x02 => self.sc,
+                0x04 => self.timer.reg.div as u8,
+                0x05 => self.timer.reg.tima as u8,
+                0x06 => self.timer.reg.tma as u8,
+                0x07 => self.timer.reg.tac as u8,
                 0x0f => self.interrupt_flags,
                 _ => 0,
               }
@@ -341,6 +363,10 @@ impl Memory {
                 0x00 => self.key.wb(value),
                 0x01 => self.sb = value,
                 0x02 => self.sc = value,
+                0x04 => self.timer.reg.div = value as u32,
+                0x05 => self.timer.reg.tima = value as u32,
+                0x06 => self.timer.reg.tma = value as u32,
+                0x07 => self.timer.reg.tac = value as u32,
                 0x0f => self.interrupt_flags = value,
                 _ => (),
               }
