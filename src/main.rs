@@ -102,23 +102,19 @@ fn run(
         // VBlank
         mem.interrupt_flags &= !0x01;
         t += cpu.handle_interrupt(mem, 0x40);
-      }
-      if mask & 0x02 != 0 {
+      } else if mask & 0x02 != 0 {
         // LCD Status
         mem.interrupt_flags &= !0x02;
         t += cpu.handle_interrupt(mem, 0x48);
-      }
-      if mask & 0x04 != 0 {
+      } else if mask & 0x04 != 0 {
         // Timer overflow
         mem.interrupt_flags &= !0x04;
         t += cpu.handle_interrupt(mem, 0x50);
-      }
-      if mask & 0x08 != 0 {
+      } else if mask & 0x08 != 0 {
         // Serial link
         mem.interrupt_flags &= !0x08;
         t += cpu.handle_interrupt(mem, 0x58);
-      }
-      if mask & 0x10 != 0 {
+      } else if mask & 0x10 != 0 {
         // Joypad press
         mem.interrupt_flags &= !0x10;
         t += cpu.handle_interrupt(mem, 0x60);
