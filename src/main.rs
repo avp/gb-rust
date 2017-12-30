@@ -11,6 +11,7 @@ use glium::glutin;
 extern crate log;
 extern crate env_logger;
 
+use std::error::Error;
 use std::fs::File;
 use std::io;
 use std::io::Read;
@@ -26,39 +27,35 @@ struct Args {
 }
 
 fn main() {
-  env_logger::init().unwrap();
-
-  let args = get_args();
-
-  let rom;
-  println!("Loading ROM: {}", &args.rom);
-  match read_file(&args.rom) {
-    Ok(r) => {
-      rom = r;
-      println!("ROM Loaded: {}", &args.rom);
-    }
+  match main_result() {
+    Ok(_) => (),
     Err(e) => {
       eprintln!("{}", e);
       process::exit(1);
     }
   }
+}
+
+fn main_result() -> Result<(), Box<Error>> {
+  env_logger::init().unwrap();
+
+  let args = get_args()?;
 
   let mut cpu = cpu::CPU::new();
 
-  let mut mem = match mem::Memory::new(rom) {
-    Ok(m) => m,
-    Err(e) => {
-      eprintln!("{}", e);
-      process::exit(1);
-    }
-  };
+  info!("Reading ROM: {}", &args.rom);
+  let rom = read_file(&args.rom)?;
+  info!("Loading ROM...");
+  let mut mem = mem::Memory::new(rom)?;
+  info!("ROM loaded.");
 
   let mut display = display::Display::new();
 
   run(&mut cpu, &mut mem, &mut display);
+  Ok(())
 }
 
-fn get_args() -> Args {
+fn get_args() -> Result<Args, Box<Error>> {
   let matches = App::new("GB Rust")
     .version("0.1.0")
     .author("AVP <avp@avp42.com>")
@@ -71,7 +68,8 @@ fn get_args() -> Args {
     )
     .get_matches();
 
-  Args { rom: String::from(matches.value_of("rom").unwrap()) }
+  let rom = matches.value_of("rom").unwrap();
+  Ok(Args { rom: String::from(rom) })
 }
 
 fn read_file(filename: &str) -> Result<Vec<u8>, io::Error> {

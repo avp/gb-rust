@@ -7,6 +7,7 @@ pub use self::key::Key;
 use self::key::KeyData;
 use gpu;
 
+use std::error::Error;
 use std::fmt;
 
 const WRAM_SIZE: usize = 0x2000;
@@ -43,12 +44,20 @@ pub enum LoadError {
 
 impl fmt::Display for LoadError {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    write!(f, "{}: ", self.description())?;
     match *self {
-      LoadError::InvalidROM => write!(f, "Invalid ROM"),
+      LoadError::InvalidROM => write!(f, "Invalid ROM")?,
       LoadError::InvalidCartridgeType(t) => {
-        write!(f, "Invalid cartridge type (0x{:02x})", t)
+        write!(f, "Invalid cartridge type (0x{:02x})", t)?
       }
-    }
+    };
+    Ok(())
+  }
+}
+
+impl Error for LoadError {
+  fn description(&self) -> &str {
+    "Error loading ROM"
   }
 }
 
