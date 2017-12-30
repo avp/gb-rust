@@ -10,6 +10,8 @@ use gpu;
 
 use std::error::Error;
 use std::fmt;
+use std::io::Write;
+use std::io::stdout;
 
 const WRAM_SIZE: usize = 0x2000;
 const ERAM_SIZE: usize = 0x2000;
@@ -166,11 +168,14 @@ impl Memory {
   }
 
   /// Steps the MMU by t t-time.
+  /// Returns the interrupts that have fired.
   pub fn step(&mut self, t: u32) -> u8 {
     let mut int = 0;
     int |= self.gpu.step(t);
-    if self.timer.inc(t / 4) {
-      int |= 0x40;
+
+    let m = if t == 0 { 1 } else { t / 4 };
+    if self.timer.inc(m) {
+      int |= 0b00100;
     };
     int
   }
@@ -253,6 +258,7 @@ impl Memory {
   pub fn wb(&mut self, addr: u16, value: u8) {
     if addr == 0xff02 && value == 0x81 {
       print!("{}", self.rb(0xff01) as char);
+      stdout().flush().unwrap();
     }
     match addr >> 12 {
       // ROM 0
@@ -359,6 +365,7 @@ impl Memory {
                 _ => (),
               }
             } else {
+              debug!("FLAG WRITE: 0x{:04x} <- {}", addr, value);
               match addr & 0x3f {
                 0x00 => self.key.wb(value),
                 0x01 => self.sb = value,

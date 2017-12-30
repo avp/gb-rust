@@ -1,9 +1,11 @@
+#[derive(Debug)]
 struct Clock {
   main: u32,
   sub: u32,
   div: u32,
 }
 
+#[derive(Debug)]
 pub struct Registers {
   pub div: u32,
   pub tima: u32,
@@ -11,6 +13,7 @@ pub struct Registers {
   pub tac: u32,
 }
 
+#[derive(Debug)]
 pub struct Timer {
   pub reg: Registers,
   clock: Clock,
@@ -48,7 +51,9 @@ impl Timer {
       }
     }
 
-    self.check_step()
+    let result = self.check_step();
+    debug!("Timer: {:?}", &self);
+    result
   }
 
   /// Return true if an interrupt was triggered.
@@ -57,8 +62,8 @@ impl Timer {
       let threshold = match self.reg.tac & 3 {
         0 => 64,
         1 => 1,
-        2 => 1,
-        3 => 64,
+        2 => 4,
+        3 => 16,
         _ => panic!("Invalid & 3 result"),
       };
       if self.clock.main >= threshold {

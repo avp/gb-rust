@@ -8,7 +8,7 @@ pub struct CPU {
   m: u32,
   t: u32,
 
-  halt: bool,
+  pub halt: bool,
   stop: bool,
 
   /// IME flag for global interrupt enable/disable.

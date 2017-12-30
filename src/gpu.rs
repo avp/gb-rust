@@ -324,7 +324,6 @@ impl GPU {
 
       let line = self.line;
       for i in 0..WIDTH {
-        info!("Coords {}:{} Tile {}", self.line, i, tile);
         let color = self.tileset[tile as usize][row][col];
 
         self.render[line * WIDTH + i] = self.bg_palette[color as usize];

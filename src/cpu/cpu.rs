@@ -32,6 +32,9 @@ impl CPU {
   /// Increment m and t to account for the time taken by the clock.
   /// Return t, the time taken for this instruction.
   pub fn step(&mut self, mem: &mut Memory) -> u32 {
+    if self.halt {
+      return 0;
+    }
     debug!(
       "pc=0x{:04x} opcode=0x{:02x} 0x{:02x} 0x{:02x} A=0x{:02x} SP=0x{:04x}",
       self.regs.pc,
@@ -616,6 +619,7 @@ impl CPU {
       0x74 => ld_r1m_r2!(hl, h),
       0x75 => ld_r1m_r2!(hl, l),
       0x76 => {
+        debug!("HALTING\n");
         self.halt = true;
         1
       }
@@ -1301,6 +1305,8 @@ impl CPU {
 
   /// Interrupt handler, jumps to 0x40.
   pub fn handle_interrupt(&mut self, mem: &mut Memory, target: u16) -> u32 {
+    self.halt = false;
+    self.stop = false;
     self.ime = false;
 
     let pc = self.regs.pc;
