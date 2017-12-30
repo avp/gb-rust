@@ -44,7 +44,15 @@ fn main() {
   }
 
   let mut cpu = cpu::CPU::new();
-  let mut mem = mem::Memory::new(rom);
+
+  let mut mem = match mem::Memory::new(rom) {
+    Ok(m) => m,
+    Err(e) => {
+      eprintln!("{}", e);
+      process::exit(1);
+    }
+  };
+
   let mut display = display::Display::new();
 
   run(&mut cpu, &mut mem, &mut display);

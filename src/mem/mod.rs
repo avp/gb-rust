@@ -7,9 +7,50 @@ pub use self::key::Key;
 use self::key::KeyData;
 use gpu;
 
+use std::fmt;
+
 const WRAM_SIZE: usize = 0x2000;
 const ERAM_SIZE: usize = 0x2000;
 const ZRAM_SIZE: usize = 0xff;
+
+#[derive(Debug)]
+enum CartridgeType {
+  NoMBC = 0,
+  MBC1 = 1,
+  MBC1RAM = 2,
+  MBC1BatteryRAM = 3,
+}
+
+#[derive(Debug)]
+enum MBCMode {
+  ROM,
+  RAM,
+}
+
+#[derive(Debug)]
+struct MBC {
+  rom_bank: u8,
+  ram_bank: u8,
+  ram_on: bool,
+  mode: MBCMode,
+}
+
+#[derive(Debug)]
+pub enum LoadError {
+  InvalidROM,
+  InvalidCartridgeType(u8),
+}
+
+impl fmt::Display for LoadError {
+  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    match *self {
+      LoadError::InvalidROM => write!(f, "Invalid ROM"),
+      LoadError::InvalidCartridgeType(t) => {
+        write!(f, "Invalid cartridge type (0x{:02x})", t)
+      }
+    }
+  }
+}
 
 pub struct Memory {
   bios: Vec<u8>,
@@ -22,6 +63,11 @@ pub struct Memory {
   sb: u8,
   sc: u8,
 
+  mbc1: MBC,
+  rom_offset: u16,
+  ram_offset: u16,
+  cartridge_type: CartridgeType,
+
   pub interrupt_enable: u8,
   pub interrupt_flags: u8,
 
@@ -29,7 +75,19 @@ pub struct Memory {
 }
 
 impl Memory {
-  pub fn new(rom: Vec<u8>) -> Memory {
+  pub fn new(rom: Vec<u8>) -> Result<Memory, LoadError> {
+    let cartridge_type = match rom.get(0x0147) {
+      Some(t) => {
+        match *t {
+          0 => CartridgeType::NoMBC,
+          1 => CartridgeType::MBC1,
+          2 => CartridgeType::MBC1RAM,
+          3 => CartridgeType::MBC1BatteryRAM,
+          t => return Err(LoadError::InvalidCartridgeType(t)),
+        }
+      }
+      None => return Err(LoadError::InvalidROM),
+    };
     let mut result = Memory {
       bios: bios::BIOS.to_vec(),
       rom: rom,
@@ -41,13 +99,23 @@ impl Memory {
       sb: 0,
       sc: 0,
 
+      mbc1: MBC {
+        rom_bank: 0,
+        ram_bank: 0,
+        ram_on: false,
+        mode: MBCMode::ROM,
+      },
+      rom_offset: 0x4000,
+      ram_offset: 0x0000,
+      cartridge_type: cartridge_type,
+
       interrupt_enable: 0,
       interrupt_flags: 0,
 
       gpu: Box::new(gpu::GPU::new()),
     };
     result.power_on();
-    result
+    Ok(result)
   }
 
   fn power_on(&mut self) {
