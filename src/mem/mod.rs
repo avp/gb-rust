@@ -167,12 +167,12 @@ impl Memory {
     match addr >> 12 {
       // ROM 0
       0x0...0x3 => self.rom[addr as usize],
-      // ROM 1 (unbanked)
-      0x4...0x7 => self.rom[addr as usize],
+      // ROM 1
+      0x4...0x7 => self.rom[(self.rom_offset + (addr & 0x3fff)) as usize],
       // GPU VRAM
       0x8...0x9 => self.gpu.vram[(addr & 0x1fff) as usize],
       // ERAM
-      0xa...0xb => self.eram[(addr & 0x1fff) as usize],
+      0xa...0xb => self.eram[(self.ram_offset + (addr & 0x1fff)) as usize],
       // WRAM
       0xc...0xd => self.wram[(addr & 0x1fff) as usize],
       // WRAM Shadow
@@ -234,9 +234,62 @@ impl Memory {
     }
     match addr >> 12 {
       // ROM 0
-      0x0...0x3 => (),
+      0x0...0x1 => {
+        match self.cartridge_type {
+          CartridgeType::MBC1RAM |
+          CartridgeType::MBC1BatteryRAM => {
+            self.mbc1.ram_on = (value & 0x0f) == 0x0a;
+          }
+          _ => (),
+        }
+      }
+      0x2...0x3 => {
+        match self.cartridge_type {
+          CartridgeType::MBC1 |
+          CartridgeType::MBC1RAM |
+          CartridgeType::MBC1BatteryRAM => {
+            let value = value & 0x1f;
+            let value = if value == 0 { 1 } else { value };
+            self.mbc1.rom_bank = (self.mbc1.rom_bank & 0x60) + value;
+            self.rom_offset = (self.mbc1.rom_bank as u16).wrapping_mul(0x4000);
+          }
+          _ => (),
+        }
+      }
+      0x4...0x5 => {
+        match self.cartridge_type {
+          CartridgeType::MBC1 |
+          CartridgeType::MBC1RAM |
+          CartridgeType::MBC1BatteryRAM => {
+            match self.mbc1.mode {
+              MBCMode::RAM => {
+                self.mbc1.ram_bank = value & 0x03;
+                self.ram_offset = self.mbc1.ram_bank as u16 * 0x2000;
+              }
+              MBCMode::ROM => {
+                self.mbc1.rom_bank = (self.mbc1.rom_bank & 0x1f) +
+                  ((value & 0x03) << 5);
+                self.rom_offset = self.mbc1.rom_bank as u16 * 0x4000;
+              }
+            }
+          }
+          _ => (),
+        }
+      }
       // ROM 1 (unbanked)
-      0x4...0x7 => (),
+      0x6...0x7 => {
+        match self.cartridge_type {
+          CartridgeType::MBC1RAM |
+          CartridgeType::MBC1BatteryRAM => {
+            self.mbc1.mode = if value & 1 == 1 {
+              MBCMode::RAM
+            } else {
+              MBCMode::ROM
+            };
+          }
+          _ => (),
+        }
+      }
       // GPU VRAM
       0x8...0x9 => {
         debug!("VRAM: 0x{:04x} <- 0x{:02x}", addr, value);
@@ -244,7 +297,9 @@ impl Memory {
         self.gpu.update_tile(addr);
       }
       // ERAM
-      0xa...0xb => self.eram[(addr & 0x1fff) as usize] = value,
+      0xa...0xb => {
+        self.eram[(self.ram_offset + (addr & 0x1fff)) as usize] = value
+      }
       // WRAM
       0xc...0xd => self.wram[(addr & 0x1fff) as usize] = value,
       // WRAM Shadow
