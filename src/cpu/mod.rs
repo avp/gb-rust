@@ -5,7 +5,7 @@ pub struct CPU {
   regs: Registers,
 
   /// Current clock.
-  m: u32,
+  pub m: u32,
   t: u32,
 
   pub halt: bool,
