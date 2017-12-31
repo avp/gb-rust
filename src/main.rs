@@ -53,7 +53,7 @@ fn main_result() -> Result<(), Box<Error>> {
 
 fn get_args() -> Args {
   let matches = App::new("GB Rust")
-    .version("0.1.0")
+    .version(env!("CARGO_PKG_VERSION"))
     .about("Game Boy emulator")
     .arg(
       Arg::with_name("rom")
