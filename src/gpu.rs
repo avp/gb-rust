@@ -151,9 +151,9 @@ impl GPU {
           self.mode_clock = 0;
           self.mode = Mode::HBlank;
           self.render_line();
-          // if self.mode0int {
-          //   int |= 0x02;
-          // }
+          if self.mode0int {
+            int |= 0x02;
+          }
         }
       }
       Mode::HBlank => {
@@ -164,14 +164,14 @@ impl GPU {
             self.mode = Mode::VBlank;
             self.render_frame();
             int |= 0x01;
-          // if self.mode1int {
-          //   int |= 0x02;
-          // }
+            if self.mode1int {
+              int |= 0x02;
+            }
           } else {
             self.mode = Mode::OAMRead;
-            // if self.mode2int {
-            //   int |= 0x02;
-            // }
+            if self.mode2int {
+              int |= 0x02;
+            }
           }
         }
       }
@@ -183,9 +183,9 @@ impl GPU {
           if self.line > (HEIGHT - 1) + 10 {
             self.mode = Mode::OAMRead;
             self.line = 0;
-            // if self.mode2int {
-            //   int |= 0x02;
-            // }
+            if self.mode2int {
+              int |= 0x02;
+            }
           }
         }
       }
