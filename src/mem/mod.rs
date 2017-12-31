@@ -402,10 +402,12 @@ impl Memory {
   }
 
   pub fn key_down(&mut self, key: Key) {
+    self.interrupt_flags |= 0b10000;
     self.key.key_down(key);
   }
 
   pub fn key_up(&mut self, key: Key) {
+    self.interrupt_flags |= 0b10000;
     self.key.key_up(key);
   }
 }
