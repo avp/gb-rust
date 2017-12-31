@@ -1,6 +1,5 @@
 #![cfg_attr(feature = "cargo-clippy", allow(match_same_arms))]
 
-mod bios;
 mod key;
 mod timer;
 
@@ -65,8 +64,7 @@ impl Error for LoadError {
 }
 
 pub struct Memory {
-  bios: Vec<u8>,
-  rom: Vec<u8>,
+  pub rom: Vec<u8>,
   wram: Vec<u8>,
   eram: Vec<u8>,
   zram: Vec<u8>,
@@ -102,7 +100,6 @@ impl Memory {
       None => return Err(LoadError::InvalidROM),
     };
     let mut result = Memory {
-      bios: bios::BIOS.to_vec(),
       rom: rom,
       wram: vec![0; WRAM_SIZE],
       eram: vec![0; ERAM_SIZE],

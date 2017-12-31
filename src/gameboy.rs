@@ -6,6 +6,7 @@ use mem::Memory;
 
 use std::error::Error;
 use std::fmt;
+use std::str;
 use std::sync::mpsc;
 use std::thread;
 use std::time;
@@ -93,13 +94,8 @@ impl GameBoy {
     Ok(())
   }
 
-  pub fn title(&self) -> String {
-    let mut result = String::new();
-    result.reserve(16);
-    for i in 0x134..0x144 {
-      result.push(self.mem.rb(i) as char);
-    }
-    result
+  pub fn title(&self) -> &str {
+    str::from_utf8(&self.mem.rom[0x134..0x144]).unwrap_or("")
   }
 
   fn handle_key(&mut self, key_input: glutin::KeyboardInput) {
