@@ -85,25 +85,29 @@ impl GameBoy {
           }
           glutin::Event::DeviceEvent { event, .. } => {
             match event {
-              glutin::DeviceEvent::Key(k) => {
-                if let Some(keycode) = k.virtual_keycode {
-                  if let Some(key) = Key::from_code(keycode) {
-                    match k.state {
-                      glutin::ElementState::Pressed => {
-                        self.mem.key_down(key);
-                      }
-                      glutin::ElementState::Released => {
-                        self.mem.key_up(key);
-                      }
-                    }
-                  }
-                }
+              glutin::DeviceEvent::Key(key_input) => {
+                self.handle_key(key_input);
               }
               _ => (),
             }
           }
           _ => (),
         });
+      }
+    }
+  }
+
+  fn handle_key(&mut self, key_input: glutin::KeyboardInput) {
+    if let Some(keycode) = key_input.virtual_keycode {
+      if let Some(key) = Key::from_code(keycode) {
+        match key_input.state {
+          glutin::ElementState::Pressed => {
+            self.mem.key_down(key);
+          }
+          glutin::ElementState::Released => {
+            self.mem.key_up(key);
+          }
+        }
       }
     }
   }
