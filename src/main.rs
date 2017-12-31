@@ -1,5 +1,4 @@
 #![allow(dead_code)]
-#![cfg_attr(test, allow(dead_code))]
 
 extern crate clap;
 use clap::{App, Arg};
@@ -46,6 +45,7 @@ fn main_result() -> Result<(), Box<Error>> {
   let rom = read_file(&args.rom)?;
 
   let mut gb = gameboy::GameBoy::new(rom)?;
+  println!("Starting game: {}", gb.title());
   gb.run(&mut display::Display::new())?;
   println!("Thanks for playing!");
   Ok(())

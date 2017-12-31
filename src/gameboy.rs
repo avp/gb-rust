@@ -93,6 +93,15 @@ impl GameBoy {
     Ok(())
   }
 
+  pub fn title(&self) -> String {
+    let mut result = String::new();
+    result.reserve(16);
+    for i in 0x134..0x144 {
+      result.push(self.mem.rb(i) as char);
+    }
+    result
+  }
+
   fn handle_key(&mut self, key_input: glutin::KeyboardInput) {
     if let Some(keycode) = key_input.virtual_keycode {
       if let Some(key) = Key::from_code(keycode) {
