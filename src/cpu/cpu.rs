@@ -128,12 +128,12 @@ impl CPU {
       ($n:expr) => {{
         let a = self.regs.a;
         let n = $n;
-        let result = a.wrapping_add(n);
+        let (result, c) = a.overflowing_add(n);
         self.regs.a = result;
         self.regs.f = 0;
         self.regs.f |= if result == 0 {reg::Z} else {0};
         self.regs.f |= if (a & 0xf) + (n & 0xf) > 0xf {reg::H} else {0};
-        self.regs.f |= if (a as u16) + (n as u16) > 0xff {reg::C} else {0};
+        self.regs.f |= if c {reg::C} else {0};
         1
       }}
     }
@@ -158,11 +158,11 @@ impl CPU {
       ($n:expr) => {{
         let a = self.regs.a;
         let n = $n;
-        let result = a.wrapping_sub(n);
+        let (result, c) = a.overflowing_sub(n);
         self.regs.a = result;
         self.regs.f = reg::N;
         self.regs.f |= if result == 0 {reg::Z} else {0};
-        self.regs.f |= if a < n {reg::C} else {0};
+        self.regs.f |= if c {reg::C} else {0};
         self.regs.f |= if (a & 0xf) < (n & 0xf) {reg::H} else {0};
         1
       }}
@@ -270,12 +270,11 @@ impl CPU {
       ($n:expr) => {{
         let hl = self.regs.hl();
         let n = $n;
-        let res = hl.wrapping_add(n);
-        let res32 = (hl as u32) + (n as u32);
-        let z = if self.regs.z() {reg::Z} else {0};
-        let c = if res32 > 0xffff {reg::C} else {0};
-        let h = if (hl as u32 & 0xfff) > (res as u32 & 0xfff) {reg::H} else {0};
-        self.regs.f = z | h | c;
+        let (res, c) = hl.overflowing_add(n);
+        self.regs.f =
+            if self.regs.z() {reg::Z} else {0}
+          | if (hl as u32 & 0xfff) > (res as u32 & 0xfff) {reg::H} else {0}
+          | if c {reg::C} else {0};
         self.regs.h = (res >> 8) as u8;
         self.regs.l = (res & 0xff) as u8;
         2
