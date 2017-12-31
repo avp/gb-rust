@@ -365,7 +365,6 @@ impl Memory {
                 _ => (),
               }
             } else {
-              debug!("FLAG WRITE: 0x{:04x} <- {}", addr, value);
               match addr & 0x3f {
                 0x00 => self.key.wb(value),
                 0x01 => self.sb = value,

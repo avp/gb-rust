@@ -619,7 +619,6 @@ impl CPU {
       0x74 => ld_r1m_r2!(hl, h),
       0x75 => ld_r1m_r2!(hl, l),
       0x76 => {
-        debug!("HALTING\n");
         self.halt = true;
         1
       }
@@ -851,7 +850,6 @@ impl CPU {
         2
       }
       0xf3 => {
-        debug!("DI");
         self.ime = false;
         1
       }
@@ -889,7 +887,6 @@ impl CPU {
         4
       }
       0xfb => {
-        debug!("EI");
         self.ime = true;
         1
       }
@@ -1313,13 +1310,6 @@ impl CPU {
       // None of the interrupts are enabled here.
       return 0;
     }
-
-    debug!(
-      "INTERRUPT! ime={} 0b{:05b} 0b{:05b}",
-      self.ime,
-      mem.interrupt_enable,
-      mem.interrupt_flags
-    );
 
     self.halt = false;
     self.stop = false;
