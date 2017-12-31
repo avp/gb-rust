@@ -11,9 +11,28 @@ use std::sync::mpsc;
 use std::thread;
 use std::time;
 
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub enum Speed {
+  Normal,
+  Double,
+}
+
+impl Speed {
+  pub fn factor(&self) -> f64 {
+    match *self {
+      Speed::Normal => 1.0,
+      Speed::Double => 2.0,
+    }
+  }
+}
+
+const MS_PER_WAIT: u32 = 16;
+
 pub struct GameBoy {
   cpu: CPU,
   mem: Memory,
+
+  pub speed: Speed,
 }
 
 #[derive(Debug)]
@@ -35,29 +54,30 @@ impl Error for RunError {
   }
 }
 
-const CLOCK_SPEED: f64 = 4.194304e+6;
-const MS_PER_WAIT: u32 = 16;
-const TICKS_PER_WAIT: u32 = (CLOCK_SPEED / 1000.0 * MS_PER_WAIT as f64) as u32;
-
 impl GameBoy {
   pub fn new(rom: Vec<u8>) -> Result<GameBoy, Box<Error>> {
     Ok(GameBoy {
       cpu: CPU::new(),
       mem: Memory::new(rom)?,
+      speed: Speed::Normal,
     })
   }
 
   pub fn run(&mut self, display: &mut Display) -> Result<(), Box<Error>> {
     let mut running = true;
 
-    let ticker = self.wait_timer();
+    let ticker = self.wait_timer(MS_PER_WAIT);
 
     while running {
+      let clock_speed: f64 = 4.194304e+6 * self.speed.factor();
+      let ticks_per_wait: u32 = (clock_speed / 1000.0 * MS_PER_WAIT as f64) as
+        u32;
+
       // Wait a bit to catch up.
       ticker.recv()?;
 
       let mut total = 0;
-      while total < TICKS_PER_WAIT {
+      while total < ticks_per_wait {
         let mut t = 0;
         t += self.cpu.handle_interrupt(&mut self.mem);
         t += self.cpu.step(&mut self.mem);
@@ -110,14 +130,26 @@ impl GameBoy {
           }
         }
       }
+
+      if let glutin::ElementState::Pressed = key_input.state {
+        match keycode {
+          glutin::VirtualKeyCode::S => {
+            self.speed = match self.speed {
+              Speed::Normal => Speed::Double,
+              Speed::Double => Speed::Normal,
+            };
+          }
+          _ => (),
+        }
+      }
     }
   }
 
-  fn wait_timer(&self) -> mpsc::Receiver<()> {
+  fn wait_timer(&self, ms: u32) -> mpsc::Receiver<()> {
     let (tx, rx) = mpsc::channel();
 
     thread::spawn(move || loop {
-      thread::sleep(time::Duration::from_millis(MS_PER_WAIT as u64));
+      thread::sleep(time::Duration::from_millis(ms as u64));
       if let Err(_) = tx.send(()) {
         break;
       }

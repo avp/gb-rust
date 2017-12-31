@@ -88,8 +88,8 @@ pub struct Memory {
 impl Memory {
   pub fn new(rom: Vec<u8>) -> Result<Memory, LoadError> {
     let cartridge_type = match rom.get(0x0147) {
-      Some(t) => {
-        match *t {
+      Some(&t) => {
+        match t {
           0 => CartridgeType::NoMBC,
           1 => CartridgeType::MBC1,
           2 => CartridgeType::MBC1RAM,
