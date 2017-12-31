@@ -37,9 +37,9 @@ fn main() {
 }
 
 fn main_result() -> Result<(), Box<Error>> {
-  env_logger::init().unwrap();
+  env_logger::init()?;
 
-  let args = get_args()?;
+  let args = get_args();
 
   info!("Reading ROM: {}", &args.rom);
   let rom = read_file(&args.rom)?;
@@ -51,10 +51,9 @@ fn main_result() -> Result<(), Box<Error>> {
   Ok(())
 }
 
-fn get_args() -> Result<Args, Box<Error>> {
+fn get_args() -> Args {
   let matches = App::new("GB Rust")
     .version("0.1.0")
-    .author("AVP <avp@avp42.com>")
     .about("Game Boy emulator")
     .arg(
       Arg::with_name("rom")
@@ -65,7 +64,7 @@ fn get_args() -> Result<Args, Box<Error>> {
     .get_matches();
 
   let rom = matches.value_of("rom").unwrap();
-  Ok(Args { rom: String::from(rom) })
+  Args { rom: String::from(rom) }
 }
 
 fn read_file(filename: &str) -> Result<Vec<u8>, io::Error> {
