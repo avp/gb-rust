@@ -851,6 +851,7 @@ impl CPU {
         2
       }
       0xf3 => {
+        debug!("DI");
         self.ime = false;
         1
       }
@@ -888,6 +889,7 @@ impl CPU {
         4
       }
       0xfb => {
+        debug!("EI");
         self.ime = true;
         1
       }
@@ -1303,11 +1305,35 @@ impl CPU {
     }
   }
 
-  /// Interrupt handler, jumps to 0x40.
-  pub fn handle_interrupt(&mut self, mem: &mut Memory, target: u16) -> u32 {
+  /// Interrupt handler.
+  pub fn handle_interrupt(&mut self, mem: &mut Memory) -> u32 {
+    let mask = mem.interrupt_enable & mem.interrupt_flags;
+
+    if mask == 0 {
+      // None of the interrupts are enabled here.
+      return 0;
+    }
+
+    debug!(
+      "INTERRUPT! ime={} 0b{:05b} 0b{:05b}",
+      self.ime,
+      mem.interrupt_enable,
+      mem.interrupt_flags
+    );
+
     self.halt = false;
     self.stop = false;
+
+    if !self.ime {
+      // Do nothing else if interrupt handling wasn't enabled.
+      return 0;
+    }
     self.ime = false;
+
+    let which = mask.trailing_zeros() as u16;
+    let target = 0x40 + (which * 8);
+    // Clear the interrupt flag we used up.
+    mem.interrupt_flags &= !(1 << which);
 
     let pc = self.regs.pc;
     self.push(mem, pc);

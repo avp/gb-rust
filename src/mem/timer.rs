@@ -52,7 +52,6 @@ impl Timer {
     }
 
     let result = self.check_step();
-    debug!("Timer: {:?}", &self);
     result
   }
 
