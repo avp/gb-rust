@@ -94,13 +94,8 @@ impl GameBoy {
                 glutin::WindowEvent::Closed => {
                   running = false;
                 }
-                _ => (),
-              }
-            }
-            glutin::Event::DeviceEvent { event, .. } => {
-              match event {
-                glutin::DeviceEvent::Key(key_input) => {
-                  self.handle_key(key_input);
+                glutin::WindowEvent::KeyboardInput { input, .. } => {
+                  self.handle_key(input);
                 }
                 _ => (),
               }
