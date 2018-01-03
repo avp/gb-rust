@@ -9,8 +9,8 @@ rust:
 cache: cargo
 before_script:
   - export PATH="$PATH:$HOME/.cargo/bin"
-  - which rustfmt || cargo install rustfmt-nightly
+  - which rustfmt || cargo install --force rustfmt-nightly
 script:
-  - cargo fmt -- --write-mode=diff
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then cargo fmt -- --write-mode=diff; fi
   - cargo build
   - cargo test
