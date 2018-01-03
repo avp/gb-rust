@@ -63,7 +63,11 @@ impl GameBoy {
     })
   }
 
-  pub fn run(&mut self, display: &mut Display) -> Result<(), Box<Error>> {
+  pub fn run(
+    &mut self,
+    display: &mut Display,
+    limit_speed: bool,
+  ) -> Result<(), Box<Error>> {
     let mut running = true;
 
     let ticker = self.wait_timer(MS_PER_WAIT);
@@ -74,7 +78,9 @@ impl GameBoy {
         u32;
 
       // Wait a bit to catch up.
-      ticker.recv()?;
+      if limit_speed {
+        ticker.recv()?;
+      }
 
       let mut total = 0;
       while total < ticks_per_wait {
@@ -133,6 +139,7 @@ impl GameBoy {
               Speed::Normal => Speed::Double,
               Speed::Double => Speed::Normal,
             };
+            println!("Speed set to: {}", self.speed.factor());
           }
           _ => (),
         }

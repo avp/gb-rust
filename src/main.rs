@@ -22,8 +22,10 @@ mod gameboy;
 mod gpu;
 mod display;
 
+#[derive(Debug)]
 struct Args {
   rom: String,
+  test: bool,
 }
 
 fn main() {
@@ -46,7 +48,7 @@ fn main_result() -> Result<(), Box<Error>> {
 
   let mut gb = gameboy::GameBoy::new(rom)?;
   println!("Starting game: {}", gb.title());
-  gb.run(&mut display::Display::new())?;
+  gb.run(&mut display::Display::new(), !args.test)?;
   println!("Thanks for playing!");
   Ok(())
 }
@@ -61,10 +63,20 @@ fn get_args() -> Args {
         .help("Path to the Game Boy ROM file to load")
         .value_name("FILE"),
     )
+    .arg(
+      Arg::with_name("test")
+        .required(false)
+        .help("Run the emulator in test mode (full speed)")
+        .short("t")
+        .long("test"),
+    )
     .get_matches();
 
   let rom = matches.value_of("rom").unwrap();
-  Args { rom: String::from(rom) }
+  Args {
+    rom: String::from(rom),
+    test: matches.is_present("test"),
+  }
 }
 
 fn read_file(filename: &str) -> Result<Vec<u8>, io::Error> {
