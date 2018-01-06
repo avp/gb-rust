@@ -160,6 +160,9 @@ impl GPU {
         if self.mode_clock >= 204 {
           self.mode_clock = 0;
           self.line += 1;
+          if self.lycly && self.lyc as usize == self.line {
+            int |= 0x02;
+          }
           if self.line == HEIGHT - 1 {
             self.mode = Mode::VBlank;
             self.render_frame();
@@ -179,6 +182,9 @@ impl GPU {
         if self.mode_clock >= 456 {
           self.mode_clock = 0;
           self.line += 1;
+          if self.lycly && self.lyc as usize == self.line {
+            int |= 0x02;
+          }
           // VBlank takes 10 lines to run.
           if self.line > (HEIGHT - 1) + 10 {
             self.mode = Mode::OAMRead;
@@ -242,11 +248,13 @@ impl GPU {
           (if self.switchlcd { 0x80 } else { 0 })
       }
       0xff41 => {
-        0
-        // ((self.lycly as u8) << 6) | ((self.mode2int as u8) << 5) |
-        //   ((self.mode1int as u8) << 4) | ((self.mode0int as u8) << 3) |
-        //   ((if self.lyc as usize == self.line { 1 } else { 0 }) << 2) |
-        //   ((self.mode as u8) << 0)
+        ((self.lycly as u8) << 6) | ((self.mode2int as u8) << 5) |
+          ((self.mode1int as u8) << 4) | ((self.mode0int as u8) << 3) |
+          (if self.lyc as usize == self.line {
+             1 << 2
+           } else {
+             0
+           }) | (self.mode as u8)
       }
       0xff42 => self.scy,
       0xff43 => self.scx,
@@ -274,7 +282,7 @@ impl GPU {
       0xff42 => self.scy = value,
       0xff43 => self.scx = value,
       0xff45 => self.lyc = value,
-      0xff46 => {}
+      0xff46 => panic!("0xff46 write to GPU is invalid"),
       0xff47...0xff49 => {
         let pal = match addr {
           0xff47 => &mut self.bg_palette,

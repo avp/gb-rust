@@ -18,10 +18,24 @@ const ZRAM_SIZE: usize = 0xff;
 
 #[derive(Debug)]
 enum CartridgeType {
-  NoMBC = 0,
-  MBC1 = 1,
-  MBC1RAM = 2,
-  MBC1BatteryRAM = 3,
+  NoMBC,
+  MBC1,
+  MBC1RAM,
+  MBC1BatteryRAM,
+}
+
+impl fmt::Display for CartridgeType {
+  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    match *self {
+      CartridgeType::NoMBC => write!(f, "No MBC")?,
+      CartridgeType::MBC1 => write!(f, "MBC1")?,
+      CartridgeType::MBC1RAM => write!(f, "MBC1 with RAM")?,
+      CartridgeType::MBC1BatteryRAM => {
+        write!(f, "MBC1 with battery-backed RAM")?
+      }
+    }
+    Ok(())
+  }
 }
 
 #[derive(Debug)]
@@ -74,8 +88,8 @@ pub struct Memory {
   sc: u8,
 
   mbc1: MBC,
-  rom_offset: u16,
-  ram_offset: u16,
+  rom_offset: usize,
+  ram_offset: usize,
   cartridge_type: CartridgeType,
 
   pub interrupt_enable: u8,
@@ -99,6 +113,8 @@ impl Memory {
       }
       None => return Err(LoadError::InvalidROM),
     };
+    info!("Loading cartridge: {}", cartridge_type);
+
     let mut result = Memory {
       rom: rom,
       wram: vec![0; WRAM_SIZE],
@@ -188,11 +204,11 @@ impl Memory {
       // ROM 0
       0x0...0x3 => self.rom[addr as usize],
       // ROM 1
-      0x4...0x7 => self.rom[(self.rom_offset + (addr & 0x3fff)) as usize],
+      0x4...0x7 => self.rom[self.rom_offset + (addr & 0x3fff) as usize],
       // GPU VRAM
       0x8...0x9 => self.gpu.vram[(addr & 0x1fff) as usize],
       // ERAM
-      0xa...0xb => self.eram[(self.ram_offset + (addr & 0x1fff)) as usize],
+      0xa...0xb => self.eram[self.ram_offset + (addr & 0x1fff) as usize],
       // WRAM
       0xc...0xd => self.wram[(addr & 0x1fff) as usize],
       // WRAM Shadow
@@ -204,7 +220,6 @@ impl Memory {
           // GPU OAM
           0xe => {
             let idx = (addr & 0xff) as usize;
-            // info!("OAM READ: 0x{:02x} -> {}", idx, self.gpu.oam[idx]);
             if idx < gpu::OAM_SIZE {
               self.gpu.oam[idx]
             } else {
@@ -276,7 +291,7 @@ impl Memory {
             let value = value & 0x1f;
             let value = if value == 0 { 1 } else { value };
             self.mbc1.rom_bank = (self.mbc1.rom_bank & 0x60) + value;
-            self.rom_offset = (self.mbc1.rom_bank as u16).wrapping_mul(0x4000);
+            self.rom_offset = self.mbc1.rom_bank as usize * 0x4000;
           }
           _ => (),
         }
@@ -289,12 +304,12 @@ impl Memory {
             match self.mbc1.mode {
               MBCMode::RAM => {
                 self.mbc1.ram_bank = value & 0x03;
-                self.ram_offset = self.mbc1.ram_bank as u16 * 0x2000;
+                self.ram_offset = self.mbc1.ram_bank as usize * 0x2000;
               }
               MBCMode::ROM => {
                 self.mbc1.rom_bank = (self.mbc1.rom_bank & 0x1f) +
                   ((value & 0x03) << 5);
-                self.rom_offset = self.mbc1.rom_bank as u16 * 0x4000;
+                self.rom_offset = self.mbc1.rom_bank as usize * 0x4000;
               }
             }
           }
@@ -323,7 +338,7 @@ impl Memory {
       }
       // ERAM
       0xa...0xb => {
-        self.eram[(self.ram_offset + (addr & 0x1fff)) as usize] = value
+        self.eram[self.ram_offset + (addr & 0x1fff) as usize] = value
       }
       // WRAM
       0xc...0xd => self.wram[(addr & 0x1fff) as usize] = value,
@@ -336,7 +351,7 @@ impl Memory {
           // GPU OAM
           0xe => {
             let idx = (addr & 0xff) as usize;
-            info!("OAM: 0x{:02x} <- {}", idx, value);
+            debug!("OAM: 0x{:02x} <- {}", idx, value);
             if idx < gpu::OAM_SIZE {
               self.gpu.oam[idx] = value;
               self.gpu.update_object(addr, value);
@@ -354,6 +369,7 @@ impl Memory {
                 for i in 0..160 {
                   let v = self.rb(((value as u16) << 8) + i);
                   self.wb(0xfe00 + i, v);
+                  return;
                 }
               }
 

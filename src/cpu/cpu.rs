@@ -32,19 +32,19 @@ impl CPU {
   /// Increment m and t to account for the time taken by the clock.
   /// Return t, the time taken for this instruction.
   pub fn step(&mut self, mem: &mut Memory) -> u32 {
-    if self.halt {
-      return 0;
-    }
     debug!(
-      "pc=0x{:04x} opcode=0x{:02x} 0x{:02x} 0x{:02x} A=0x{:02x} SP=0x{:04x}",
+      "pc=0x{:04x} opcode=0x{:02x} 0x{:02x} 0x{:02x} \
+      A=0x{:02x} C=0x{:02x} HL=0x{:04x} 0xa100=0x{:02x}",
       self.regs.pc,
       mem.rb(self.regs.pc),
       mem.rb(self.regs.pc + 1),
       mem.rb(self.regs.pc + 2),
       self.regs.a,
-      self.regs.sp,
+      self.regs.c,
+      self.regs.hl(),
+      mem.rb(0xa100),
     );
-    let m = self.exec(mem);
+    let m = if self.halt { 1 } else { self.exec(mem) };
     self.regs.m = m;
     self.regs.t = 4 * m;
     self.m += self.regs.m;
@@ -1309,6 +1309,11 @@ impl CPU {
       // None of the interrupts are enabled here.
       return 0;
     }
+    debug!(
+      "Handling interrupt: e={} f={}",
+      mem.interrupt_enable,
+      mem.interrupt_flags
+    );
 
     self.halt = false;
     self.stop = false;
