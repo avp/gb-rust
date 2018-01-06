@@ -75,6 +75,7 @@ pub struct GPU {
   bg_palette: [u8; 4],
 
   switchobj: bool,
+  objsize: bool,
   obj0_palette: [u8; 4],
   obj1_palette: [u8; 4],
 
@@ -115,6 +116,7 @@ impl GPU {
       bg_palette: [255, 192, 96, 0],
 
       switchobj: false,
+      objsize: false,
       obj0_palette: [255, 192, 96, 0],
       obj1_palette: [255, 192, 96, 0],
 
@@ -243,6 +245,7 @@ impl GPU {
       0xff40 => {
         (if self.switchbg { 0x01 } else { 0 }) |
           (if self.switchobj { 0x02 } else { 0 }) |
+          (if self.objsize { 0x04 } else { 0 }) |
           (if self.bgmap { 0x08 } else { 0 }) |
           (if self.bgtile { 0x10 } else { 0 }) |
           (if self.switchlcd { 0x80 } else { 0 })
@@ -269,6 +272,7 @@ impl GPU {
       0xff40 => {
         self.switchbg = (value & 0x01) != 0;
         self.switchobj = (value & 0x02) != 0;
+        self.objsize = (value & 0x04) != 0;
         self.bgmap = (value & 0x08) != 0;
         self.bgtile = (value & 0x10) != 0;
         self.switchlcd = (value & 0x80) != 0;
@@ -353,21 +357,28 @@ impl GPU {
 
     if self.switchobj {
       for i in 0..NUM_OBJECTS {
-        let object = self.objects[i];
+        let line = self.line as i32;
+        let ysize = if self.objsize { 16 } else { 8 };
 
-        debug!("Rendering object {} at {:?}", i, (object.y, object.x));
-        if object.y <= (self.line as i32) && (object.y + 8) > self.line as i32 {
+        let object = self.objects[i];
+        if object.y <= line && line < (object.y + ysize) {
+          debug!("Rendering object {} at line={} {:?}", i, self.line, object);
           let pal = if object.palette {
             self.obj1_palette
           } else {
             self.obj0_palette
           };
 
-          let tile = object.tile;
-          let tilerow = if object.yflip {
-            self.tileset[tile][7 - (self.line as i32 - object.y) as usize]
+          let (tile, objy) = if ysize == 16 && line - object.y >= 8 {
+            (object.tile + 1, object.y + 8)
           } else {
-            self.tileset[tile][(self.line as i32 - object.y) as usize]
+            (object.tile, object.y)
+          };
+
+          let tilerow = if object.yflip {
+            self.tileset[tile][7 - (line - objy) as usize]
+          } else {
+            self.tileset[tile][(line - objy) as usize]
           };
 
           for x in 0..8 {
