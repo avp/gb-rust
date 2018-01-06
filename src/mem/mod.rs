@@ -9,8 +9,11 @@ use gpu;
 
 use std::error::Error;
 use std::fmt;
+use std::fs::File;
+use std::io::Read;
 use std::io::Write;
 use std::io::stdout;
+use std::path::PathBuf;
 
 const WRAM_SIZE: usize = 0x2000;
 const ERAM_SIZE: usize = 0x2000;
@@ -35,6 +38,15 @@ impl fmt::Display for CartridgeType {
       }
     }
     Ok(())
+  }
+}
+
+impl CartridgeType {
+  pub fn has_battery(&self) -> bool {
+    match *self {
+      CartridgeType::MBC1BatteryRAM => true,
+      _ => false,
+    }
   }
 }
 
@@ -97,10 +109,12 @@ pub struct Memory {
 
   gpu: Box<gpu::GPU>,
   timer: Box<timer::Timer>,
+
+  savepath: PathBuf,
 }
 
 impl Memory {
-  pub fn new(rom: Vec<u8>) -> Result<Memory, LoadError> {
+  pub fn new(rom: Vec<u8>, filename: &PathBuf) -> Result<Memory, LoadError> {
     let cartridge_type = match rom.get(0x0147) {
       Some(&t) => {
         match t {
@@ -115,10 +129,33 @@ impl Memory {
     };
     info!("Loading cartridge: {}", cartridge_type);
 
+    assert!(filename.is_file());
+    let savepath = filename.with_extension("sav");
+    let mut eram: Vec<u8> = vec![];
+    if cartridge_type.has_battery() && savepath.is_file() {
+      // Load ERAM from save file.
+      if let Ok(mut f) = File::open(&savepath) {
+        println!("Reading save file: {}", savepath.to_str().unwrap());
+        match f.read_to_end(&mut eram) {
+          Ok(_) => (),
+          Err(_) => {
+            eprintln!(
+              "Unable to read save file: {}",
+              savepath.to_str().unwrap()
+            );
+          }
+        }
+      }
+    }
+    // Error correction
+    if eram.len() != ERAM_SIZE {
+      eram = vec![0; ERAM_SIZE]
+    }
+
     let mut result = Memory {
       rom: rom,
       wram: vec![0; WRAM_SIZE],
-      eram: vec![0; ERAM_SIZE],
+      eram: eram,
       zram: vec![0; ZRAM_SIZE],
       key: KeyData::new(),
 
@@ -140,8 +177,11 @@ impl Memory {
 
       gpu: Box::new(gpu::GPU::new()),
       timer: Box::new(timer::Timer::new()),
+
+      savepath: savepath,
     };
     result.power_on();
+
     Ok(result)
   }
 
@@ -421,5 +461,35 @@ impl Memory {
   pub fn key_up(&mut self, key: Key) {
     self.interrupt_flags |= 0b10000;
     self.key.key_up(key);
+  }
+
+  pub fn save_ram(&self) {
+    let savepath = &self.savepath;
+    if self.cartridge_type.has_battery() && !savepath.is_dir() {
+      // Load ERAM from save file.
+      match File::create(&savepath) {
+        Ok(mut f) => {
+          println!("Writing save file: {}", savepath.to_str().unwrap());
+          match f.write(&self.eram) {
+            Ok(_) => (),
+            Err(e) => {
+              eprintln!(
+                "Unable to write save file {}: {}",
+                savepath.to_str().unwrap(),
+                e
+              );
+            }
+          }
+        }
+        Err(e) => {
+          eprintln!(
+            "Unable to open save file {}: {}",
+            savepath.to_str().unwrap(),
+            e
+          );
+        }
+      }
+    }
+
   }
 }

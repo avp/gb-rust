@@ -14,6 +14,7 @@ use std::error::Error;
 use std::fs::File;
 use std::io;
 use std::io::Read;
+use std::path::PathBuf;
 use std::process;
 
 mod cpu;
@@ -24,7 +25,7 @@ mod display;
 
 #[derive(Debug)]
 struct Args {
-  rom: String,
+  rom: PathBuf,
   test: bool,
 }
 
@@ -32,7 +33,7 @@ fn main() {
   match main_result() {
     Ok(_) => (),
     Err(e) => {
-      eprintln!("{}", e);
+      eprintln!("Error: {}", e);
       process::exit(1);
     }
   }
@@ -41,19 +42,18 @@ fn main() {
 fn main_result() -> Result<(), Box<Error>> {
   env_logger::init()?;
 
-  let args = get_args();
+  let args = get_args()?;
 
-  info!("Reading ROM: {}", &args.rom);
   let rom = read_file(&args.rom)?;
 
-  let mut gb = gameboy::GameBoy::new(rom)?;
+  let mut gb = gameboy::GameBoy::new(rom, &args.rom)?;
   println!("Starting game: {}", gb.title());
   gb.run(&mut display::Display::new(), !args.test)?;
   println!("Thanks for playing!");
   Ok(())
 }
 
-fn get_args() -> Args {
+fn get_args() -> Result<Args, &'static str> {
   let matches = App::new("GB Rust")
     .version(env!("CARGO_PKG_VERSION"))
     .about("Game Boy emulator")
@@ -72,14 +72,18 @@ fn get_args() -> Args {
     )
     .get_matches();
 
-  let rom = matches.value_of("rom").unwrap();
-  Args {
-    rom: String::from(rom),
-    test: matches.is_present("test"),
+  let rom = PathBuf::from(matches.value_of("rom").unwrap());
+  if !rom.is_file() {
+    return Err("Provided ROM is a directory");
   }
+
+  Ok(Args {
+    rom: rom,
+    test: matches.is_present("test"),
+  })
 }
 
-fn read_file(filename: &str) -> Result<Vec<u8>, io::Error> {
+fn read_file(filename: &PathBuf) -> Result<Vec<u8>, io::Error> {
   let mut file = File::open(filename)?;
   let mut result: Vec<u8> = vec![];
   file.read_to_end(&mut result)?;

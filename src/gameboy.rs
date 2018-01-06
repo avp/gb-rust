@@ -6,6 +6,8 @@ use mem::Memory;
 
 use std::error::Error;
 use std::fmt;
+use std::ops::Drop;
+use std::path::PathBuf;
 use std::str;
 use std::sync::mpsc;
 use std::thread;
@@ -55,10 +57,10 @@ impl Error for RunError {
 }
 
 impl GameBoy {
-  pub fn new(rom: Vec<u8>) -> Result<GameBoy, Box<Error>> {
+  pub fn new(rom: Vec<u8>, filename: &PathBuf) -> Result<GameBoy, Box<Error>> {
     Ok(GameBoy {
       cpu: CPU::new(),
-      mem: Memory::new(rom)?,
+      mem: Memory::new(rom, filename)?,
       speed: Speed::Normal,
     })
   }
@@ -158,5 +160,11 @@ impl GameBoy {
     });
 
     rx
+  }
+}
+
+impl Drop for GameBoy {
+  fn drop(&mut self) {
+    self.mem.save_ram();
   }
 }
