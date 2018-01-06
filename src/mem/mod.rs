@@ -369,8 +369,8 @@ impl Memory {
                 for i in 0..160 {
                   let v = self.rb(((value as u16) << 8) + i);
                   self.wb(0xfe00 + i, v);
-                  return;
                 }
+                return;
               }
 
               match (addr >> 4) & 0xf {
