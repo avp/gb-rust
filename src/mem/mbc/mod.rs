@@ -5,7 +5,7 @@ pub enum MBCMode {
 }
 
 #[derive(Debug)]
-pub struct MBC {
+pub struct MBC1 {
   pub rom_bank: u8,
   pub ram_bank: u8,
   pub ram_on: bool,

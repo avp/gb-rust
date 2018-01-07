@@ -9,7 +9,7 @@ pub use self::key::Key;
 use self::key::KeyData;
 use gpu;
 
-use self::mbc::MBC;
+use self::mbc::MBC1;
 use self::mbc::MBCMode;
 
 use std::error::Error;
@@ -90,7 +90,7 @@ pub struct Memory {
   sb: u8,
   sc: u8,
 
-  mbc1: Box<mbc::MBC>,
+  mbc1: Box<mbc::MBC1>,
   rom_offset: usize,
   ram_offset: usize,
   cartridge_type: CartridgeType,
@@ -152,7 +152,7 @@ impl Memory {
       sb: 0,
       sc: 0,
 
-      mbc1: Box::new(MBC {
+      mbc1: Box::new(MBC1 {
         rom_bank: 0,
         ram_bank: 0,
         ram_on: false,
