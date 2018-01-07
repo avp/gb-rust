@@ -330,86 +330,93 @@ impl GPU {
     let mut scanrow = [0u8; WIDTH];
 
     if self.switchbg {
-      // Tile coordinate top left corner of the background.
-      let row = (self.line + self.scy as usize) % 8;
-      let mut col = (self.scx % 8) as usize;
-
-      let map_base = if self.bgmap { 0x1c00 } else { 0x1800 };
-
-      // Current screen line number + vertical scroll offset
-      // is the line of the bg.
-      // Confine it to the 256 possible tiles to ensure wraparound,
-      // divide by 8 pixels per tile,
-      // and multiply by TILEMAP_WIDTH tiles in each previous row of the map.
-      let map_row_offset = map_base +
-        ((((self.line + self.scy as usize) % 256) / 8) * TILEMAP_WIDTH);
-
-      // Add to that the horizontal offset (just offset / 8 pixels per tile).
-      let mut map_col_offset = ((self.scx / 8) as usize % TILEMAP_WIDTH) as
-        usize;
-      let mut tile = self.vram[map_row_offset + map_col_offset] as u16;
-      if !self.bgtile {
-        tile = (tile as i8 as i16 + 256) as u16;
-      };
-
-      let line = self.line;
-      for i in 0..WIDTH {
-        let color = self.tileset[tile as usize][row][col];
-
-        self.render[line * WIDTH + i] = self.bg_palette[color as usize];
-        scanrow[i] = color;
-
-        col += 1;
-        if col == 8 {
-          // Read another tile since this one is done.
-          col = 0;
-
-          map_col_offset = (map_col_offset + 1) % TILEMAP_WIDTH;
-          tile = self.vram[map_row_offset + map_col_offset] as u16;
-          if !self.bgtile {
-            tile = (tile as i8 as i16 + 256) as u16;
-          };
-        }
-      }
+      self.render_bg(&mut scanrow);
     }
 
     if self.switchobj {
-      for i in 0..NUM_OBJECTS {
-        let line = self.line as i32;
-        let ysize = if self.objsize { 16 } else { 8 };
+      self.render_objects(&mut scanrow);
+    }
+  }
 
-        let object = self.objects[i];
-        if object.y <= line && line < (object.y + ysize) {
-          debug!("Rendering object {} at line={} {:?}", i, self.line, object);
-          let pal = if object.palette {
-            self.obj1_palette
-          } else {
-            self.obj0_palette
-          };
+  fn render_bg(&mut self, scanrow: &mut [u8; WIDTH]) {
+    // Tile coordinate top left corner of the background.
+    let row = (self.line + self.scy as usize) % 8;
+    let mut col = (self.scx % 8) as usize;
 
-          let (tile, objy) = if ysize == 16 && line - object.y >= 8 {
-            (object.tile + 1, object.y + 8)
-          } else {
-            (object.tile, object.y)
-          };
+    let map_base = if self.bgmap { 0x1c00 } else { 0x1800 };
 
-          let tilerow = if object.yflip {
-            self.tileset[tile][7 - (line - objy) as usize]
-          } else {
-            self.tileset[tile][(line - objy) as usize]
-          };
+    // Current screen line number + vertical scroll offset
+    // is the line of the bg.
+    // Confine it to the 256 possible tiles to ensure wraparound,
+    // divide by 8 pixels per tile,
+    // and multiply by TILEMAP_WIDTH tiles in each previous row of the map.
+    let map_row_offset = map_base +
+      ((((self.line + self.scy as usize) % 256) / 8) * TILEMAP_WIDTH);
 
-          for x in 0..8 {
-            if 0 <= (object.x + x) && (object.x + x) < WIDTH as i32 {
-              let tilerow_idx = if object.xflip { 7 - x } else { x } as usize;
-              let pal_idx = tilerow[tilerow_idx] as usize;
-              if pal_idx != 0 {
-                if object.priority || scanrow[(object.x + x) as usize] == 0 {
-                  let color = pal[pal_idx];
-                  let _row = self.line;
-                  let _col = (object.x + x) as usize;
-                  self.set_color(_row, _col, color);
-                }
+    // Add to that the horizontal offset (just offset / 8 pixels per tile).
+    let mut map_col_offset = ((self.scx / 8) as usize % TILEMAP_WIDTH) as usize;
+    let mut tile = self.vram[map_row_offset + map_col_offset] as u16;
+    if !self.bgtile {
+      tile = (tile as i8 as i16 + 256) as u16;
+    };
+
+    let line = self.line;
+    for i in 0..WIDTH {
+      let color = self.tileset[tile as usize][row][col];
+
+      self.render[line * WIDTH + i] = self.bg_palette[color as usize];
+      scanrow[i] = color;
+
+      col += 1;
+      if col == 8 {
+        // Read another tile since this one is done.
+        col = 0;
+
+        map_col_offset = (map_col_offset + 1) % TILEMAP_WIDTH;
+        tile = self.vram[map_row_offset + map_col_offset] as u16;
+        if !self.bgtile {
+          tile = (tile as i8 as i16 + 256) as u16;
+        };
+      }
+    }
+  }
+
+  fn render_objects(&mut self, scanrow: &mut [u8; WIDTH]) {
+    for i in 0..NUM_OBJECTS {
+      let line = self.line as i32;
+      let ysize = if self.objsize { 16 } else { 8 };
+
+      let object = self.objects[i];
+      if object.y <= line && line < (object.y + ysize) {
+        debug!("Rendering object {} at line={} {:?}", i, self.line, object);
+        let pal = if object.palette {
+          self.obj1_palette
+        } else {
+          self.obj0_palette
+        };
+
+        let (tile, objy) = if ysize == 16 && line - object.y >= 8 {
+          (object.tile + 1, object.y + 8)
+        } else {
+          (object.tile, object.y)
+        };
+
+        let tilerow = if object.yflip {
+          self.tileset[tile][7 - (line - objy) as usize]
+        } else {
+          self.tileset[tile][(line - objy) as usize]
+        };
+
+        for x in 0..8 {
+          if 0 <= (object.x + x) && (object.x + x) < WIDTH as i32 {
+            let tilerow_idx = if object.xflip { 7 - x } else { x } as usize;
+            let pal_idx = tilerow[tilerow_idx] as usize;
+            if pal_idx != 0 {
+              if object.priority || scanrow[(object.x + x) as usize] == 0 {
+                let color = pal[pal_idx];
+                let _row = self.line;
+                let _col = (object.x + x) as usize;
+                self.set_color(_row, _col, color);
               }
             }
           }
