@@ -30,11 +30,12 @@ impl Speed {
 
 const MS_PER_WAIT: u32 = 16;
 
-pub struct GameBoy {
+pub struct GameBoy<'a> {
   cpu: CPU,
-  mem: Memory,
+  mem: Memory<'a>,
 
   pub speed: Speed,
+  pub title: String,
 }
 
 #[derive(Debug)]
@@ -56,9 +57,15 @@ impl Error for RunError {
   }
 }
 
-impl GameBoy {
-  pub fn new(rom: Vec<u8>, filename: &PathBuf) -> Result<GameBoy, Box<Error>> {
+impl<'a> GameBoy<'a> {
+  pub fn new(
+    rom: Vec<u8>,
+    filename: PathBuf,
+  ) -> Result<GameBoy<'a>, Box<Error>> {
+    let title =
+      String::from_utf8(rom[0x134..0x144].to_vec()).unwrap_or(String::new());
     Ok(GameBoy {
+      title: title,
       cpu: CPU::new(),
       mem: Memory::new(rom, filename)?,
       speed: Speed::Normal,
@@ -117,10 +124,6 @@ impl GameBoy {
     Ok(())
   }
 
-  pub fn title(&self) -> &str {
-    str::from_utf8(&self.mem.rom[0x134..0x144]).unwrap_or("")
-  }
-
   fn handle_key(&mut self, key_input: glutin::KeyboardInput) {
     if let Some(keycode) = key_input.virtual_keycode {
       if let Some(key) = Key::from_code(keycode) {
@@ -163,7 +166,7 @@ impl GameBoy {
   }
 }
 
-impl Drop for GameBoy {
+impl<'a> Drop for GameBoy<'a> {
   fn drop(&mut self) {
     self.mem.save_ram();
   }

@@ -9,8 +9,9 @@ pub use self::key::Key;
 use self::key::KeyData;
 use gpu;
 
+use self::mbc::MBC;
+use self::mbc::MBC0;
 use self::mbc::MBC1;
-use self::mbc::MBCMode;
 
 use std::error::Error;
 use std::fmt;
@@ -24,9 +25,9 @@ const WRAM_SIZE: usize = 0x2000;
 const ERAM_SIZE: usize = 0x2000;
 const ZRAM_SIZE: usize = 0xff;
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
 enum CartridgeType {
-  NoMBC,
+  MBC0,
   MBC1,
   MBC1RAM,
   MBC1BatteryRAM,
@@ -35,7 +36,7 @@ enum CartridgeType {
 impl fmt::Display for CartridgeType {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
     match *self {
-      CartridgeType::NoMBC => write!(f, "No MBC")?,
+      CartridgeType::MBC0 => write!(f, "No MBC")?,
       CartridgeType::MBC1 => write!(f, "MBC1")?,
       CartridgeType::MBC1RAM => write!(f, "MBC1 with RAM")?,
       CartridgeType::MBC1BatteryRAM => {
@@ -80,17 +81,15 @@ impl Error for LoadError {
   }
 }
 
-pub struct Memory {
-  pub rom: Vec<u8>,
+pub struct Memory<'a> {
   wram: Vec<u8>,
-  eram: Vec<u8>,
   zram: Vec<u8>,
   key: KeyData,
 
   sb: u8,
   sc: u8,
 
-  mbc1: Box<mbc::MBC1>,
+  mbc: Box<MBC + 'a>,
   rom_offset: usize,
   ram_offset: usize,
   cartridge_type: CartridgeType,
@@ -104,12 +103,12 @@ pub struct Memory {
   savepath: PathBuf,
 }
 
-impl Memory {
-  pub fn new(rom: Vec<u8>, filename: &PathBuf) -> Result<Memory, LoadError> {
+impl<'a> Memory<'a> {
+  pub fn new(rom: Vec<u8>, filename: PathBuf) -> Result<Memory<'a>, LoadError> {
     let cartridge_type = match rom.get(0x0147) {
       Some(&t) => {
         match t {
-          0 => CartridgeType::NoMBC,
+          0 => CartridgeType::MBC0,
           1 => CartridgeType::MBC1,
           2 => CartridgeType::MBC1RAM,
           3 => CartridgeType::MBC1BatteryRAM,
@@ -137,27 +136,28 @@ impl Memory {
         }
       }
     }
-    // Error correction
+    // Error correction - this was an invalid save file.
     if eram.len() != ERAM_SIZE {
-      eram = vec![0; ERAM_SIZE]
+      warn!("Invalid save file: not loading save");
+      eram = vec![0; ERAM_SIZE];
     }
 
+    let mbc: Box<MBC> = match cartridge_type {
+      CartridgeType::MBC0 => Box::new(MBC0::new(rom, eram)),
+      CartridgeType::MBC1 |
+      CartridgeType::MBC1RAM |
+      CartridgeType::MBC1BatteryRAM => Box::new(MBC1::new(rom, eram)),
+    };
+
     let mut result = Memory {
-      rom: rom,
       wram: vec![0; WRAM_SIZE],
-      eram: eram,
       zram: vec![0; ZRAM_SIZE],
       key: KeyData::new(),
 
       sb: 0,
       sc: 0,
 
-      mbc1: Box::new(MBC1 {
-        rom_bank: 0,
-        ram_bank: 0,
-        ram_on: false,
-        mode: MBCMode::ROM,
-      }),
+      mbc: mbc,
       rom_offset: 0x4000,
       ram_offset: 0x0000,
       cartridge_type: cartridge_type,
@@ -231,14 +231,11 @@ impl Memory {
   /// Read a byte at address `addr`.
   pub fn rb(&self, addr: u16) -> u8 {
     match addr >> 12 {
-      // ROM 0
-      0x0...0x3 => self.rom[addr as usize],
-      // ROM 1
-      0x4...0x7 => self.rom[self.rom_offset + (addr & 0x3fff) as usize],
+      0x0...0x7 => self.mbc.rb(addr),
       // GPU VRAM
       0x8...0x9 => self.gpu.vram[(addr & 0x1fff) as usize],
       // ERAM
-      0xa...0xb => self.eram[self.ram_offset + (addr & 0x1fff) as usize],
+      0xa...0xb => self.mbc.rb(addr),
       // WRAM
       0xc...0xd => self.wram[(addr & 0x1fff) as usize],
       // WRAM Shadow
@@ -303,62 +300,8 @@ impl Memory {
       stdout().flush().unwrap();
     }
     match addr >> 12 {
-      // ROM 0
-      0x0...0x1 => {
-        match self.cartridge_type {
-          CartridgeType::MBC1RAM |
-          CartridgeType::MBC1BatteryRAM => {
-            self.mbc1.ram_on = (value & 0x0f) == 0x0a;
-          }
-          _ => (),
-        }
-      }
-      0x2...0x3 => {
-        match self.cartridge_type {
-          CartridgeType::MBC1 |
-          CartridgeType::MBC1RAM |
-          CartridgeType::MBC1BatteryRAM => {
-            let value = value & 0x1f;
-            let value = if value == 0 { 1 } else { value };
-            self.mbc1.rom_bank = (self.mbc1.rom_bank & 0x60) + value;
-            self.rom_offset = self.mbc1.rom_bank as usize * 0x4000;
-          }
-          _ => (),
-        }
-      }
-      0x4...0x5 => {
-        match self.cartridge_type {
-          CartridgeType::MBC1 |
-          CartridgeType::MBC1RAM |
-          CartridgeType::MBC1BatteryRAM => {
-            match self.mbc1.mode {
-              MBCMode::RAM => {
-                self.mbc1.ram_bank = value & 0x03;
-                self.ram_offset = self.mbc1.ram_bank as usize * 0x2000;
-              }
-              MBCMode::ROM => {
-                self.mbc1.rom_bank = (self.mbc1.rom_bank & 0x1f) +
-                  ((value & 0x03) << 5);
-                self.rom_offset = self.mbc1.rom_bank as usize * 0x4000;
-              }
-            }
-          }
-          _ => (),
-        }
-      }
-      // ROM 1 (unbanked)
-      0x6...0x7 => {
-        match self.cartridge_type {
-          CartridgeType::MBC1RAM |
-          CartridgeType::MBC1BatteryRAM => {
-            self.mbc1.mode = if value & 1 == 1 {
-              MBCMode::RAM
-            } else {
-              MBCMode::ROM
-            };
-          }
-          _ => (),
-        }
+      0x0...0x7 => {
+        self.mbc.wb(addr, value);
       }
       // GPU VRAM
       0x8...0x9 => {
@@ -368,7 +311,7 @@ impl Memory {
       }
       // ERAM
       0xa...0xb => {
-        self.eram[self.ram_offset + (addr & 0x1fff) as usize] = value
+        self.mbc.wb(addr, value);
       }
       // WRAM
       0xc...0xd => self.wram[(addr & 0x1fff) as usize] = value,
@@ -460,7 +403,7 @@ impl Memory {
       match File::create(&savepath) {
         Ok(mut f) => {
           println!("Writing save file: {}", savepath.to_str().unwrap());
-          match f.write(&self.eram) {
+          match f.write(&self.mbc.eram()) {
             Ok(_) => (),
             Err(e) => {
               eprintln!(
