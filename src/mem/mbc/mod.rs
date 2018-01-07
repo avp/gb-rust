@@ -30,8 +30,7 @@ impl MBC0 {
 impl MBC for MBC0 {
   fn rb(&self, addr: u16) -> u8 {
     match addr >> 12 {
-      0x0...0x3 => self.rom[addr as usize],
-      0x4...0x7 => self.rom[addr as usize],
+      0x0...0x7 => self.rom[addr as usize],
       0xa...0xb => self.ram[(addr & 0x1fff) as usize],
       _ => panic!("Invalid address to MBC: {}", addr),
     }
@@ -68,7 +67,7 @@ impl MBC1 {
       rom: rom,
       ram: ram,
 
-      rom_bank: 0,
+      rom_bank: 1,
       ram_bank: 0,
       ram_on: false,
       mode: MBCMode::ROM,

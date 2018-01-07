@@ -138,7 +138,6 @@ impl<'a> Memory<'a> {
     }
     // Error correction - this was an invalid save file.
     if eram.len() != ERAM_SIZE {
-      warn!("Invalid save file: not loading save");
       eram = vec![0; ERAM_SIZE];
     }
 
