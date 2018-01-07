@@ -2,10 +2,15 @@
 
 mod key;
 mod timer;
+mod mbc;
 
 pub use self::key::Key;
+
 use self::key::KeyData;
 use gpu;
+
+use self::mbc::MBC;
+use self::mbc::MBCMode;
 
 use std::error::Error;
 use std::fmt;
@@ -51,20 +56,6 @@ impl CartridgeType {
 }
 
 #[derive(Debug)]
-enum MBCMode {
-  ROM,
-  RAM,
-}
-
-#[derive(Debug)]
-struct MBC {
-  rom_bank: u8,
-  ram_bank: u8,
-  ram_on: bool,
-  mode: MBCMode,
-}
-
-#[derive(Debug)]
 pub enum LoadError {
   InvalidROM,
   InvalidCartridgeType(u8),
@@ -99,7 +90,7 @@ pub struct Memory {
   sb: u8,
   sc: u8,
 
-  mbc1: MBC,
+  mbc1: Box<mbc::MBC>,
   rom_offset: usize,
   ram_offset: usize,
   cartridge_type: CartridgeType,
@@ -161,12 +152,12 @@ impl Memory {
       sb: 0,
       sc: 0,
 
-      mbc1: MBC {
+      mbc1: Box::new(MBC {
         rom_bank: 0,
         ram_bank: 0,
         ram_on: false,
         mode: MBCMode::ROM,
-      },
+      }),
       rom_offset: 0x4000,
       ram_offset: 0x0000,
       cartridge_type: cartridge_type,
