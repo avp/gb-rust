@@ -15,7 +15,7 @@ const NUM_OBJECTS: usize = 40;
 
 pub type Frame = [u8; 4 * WIDTH * HEIGHT];
 
-const COLORS: [u8; 4] = [255, 192, 96, 0];
+const COLORS: [u8; 4] = [255, 150, 50, 0];
 
 #[derive(Debug, Copy, Clone)]
 enum Mode {
@@ -113,12 +113,12 @@ impl GPU {
       switchlcd: false,
       scx: 0,
       scy: 0,
-      bg_palette: [255, 192, 96, 0],
+      bg_palette: COLORS.clone(),
 
       switchobj: false,
       objsize: false,
-      obj0_palette: [255, 192, 96, 0],
-      obj1_palette: [255, 192, 96, 0],
+      obj0_palette: COLORS.clone(),
+      obj1_palette: COLORS.clone(),
 
       lycly: false,
       mode0int: false,
@@ -296,10 +296,10 @@ impl GPU {
         };
         for i in 0..4 {
           match (value >> (i * 2)) & 3 {
-            0 => pal[i] = 255,
-            1 => pal[i] = 192,
-            2 => pal[i] = 96,
-            3 => pal[i] = 0,
+            0 => pal[i] = COLORS[0],
+            1 => pal[i] = COLORS[1],
+            2 => pal[i] = COLORS[2],
+            3 => pal[i] = COLORS[3],
             _ => unimplemented!(),
           }
         }
