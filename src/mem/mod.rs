@@ -129,9 +129,8 @@ impl Memory {
     };
     info!("Loading cartridge: {}", cartridge_type);
 
-    assert!(filename.is_file());
-    let savepath = filename.with_extension("sav");
     let mut eram: Vec<u8> = vec![];
+    let savepath = filename.with_extension("sav");
     if cartridge_type.has_battery() && savepath.is_file() {
       // Load ERAM from save file.
       if let Ok(mut f) = File::open(&savepath) {
