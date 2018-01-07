@@ -235,8 +235,8 @@ impl GPU {
     let i = ((addr & 0xff) / 4) as usize;
     if i < NUM_OBJECTS {
       match addr % 4 {
-        0 => self.objects[i].y = ((val as i8 as i32) - 16) as u8 as i32,
-        1 => self.objects[i].x = ((val as i8 as i32) - 8) as u8 as i32,
+        0 => self.objects[i].y = (val as u16 as i32) - 16,
+        1 => self.objects[i].x = (val as u16 as i32) - 8,
         2 => self.objects[i].tile = val as usize,
         3 => {
           self.objects[i].palette = val & 0x10 != 0;
