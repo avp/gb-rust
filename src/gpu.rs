@@ -389,14 +389,16 @@ impl GPU {
     if self.line < self.winy as usize {
       return;
     }
+    let winy = self.line - self.winy as usize;
 
     if self.winx >= WIDTH as u8 + 7 {
       return;
     }
+    let winx = self.winx - 8;
 
     // Tile coordinate top left corner of the background.
     let row = (self.line - self.winy as usize) % 8;
-    let mut col = ((self.winx - 8) % 8) as usize;
+    let mut col = (winx % 8) as usize;
 
     let map_base = if self.winmap { 0x1c00 } else { 0x1800 };
 
@@ -405,12 +407,10 @@ impl GPU {
     // Confine it to the 256 possible tiles to ensure wraparound,
     // divide by 8 pixels per tile,
     // and multiply by TILEMAP_WIDTH tiles in each previous row of the map.
-    let map_row_offset = map_base +
-      ((((self.line - self.winy as usize) % 256) / 8) * TILEMAP_WIDTH);
+    let map_row_offset = map_base + (((winy % 256) / 8) * TILEMAP_WIDTH);
 
     // Add to that the horizontal offset (just offset / 8 pixels per tile).
-    let mut map_col_offset = (((self.winx - 8) / 8) as usize % TILEMAP_WIDTH) as
-      usize;
+    let mut map_col_offset = ((winx / 8) as usize % TILEMAP_WIDTH) as usize;
     let mut tile = self.vram[map_row_offset + map_col_offset] as u16;
     if !self.bgtile {
       tile = (tile as i8 as i16 + 256) as u16;
@@ -451,8 +451,20 @@ impl GPU {
           self.obj0_palette
         };
 
-        let (tile, objy) = if ysize == 16 && line - object.y >= 8 {
-          (object.tile + 1, object.y + 8)
+        let (tile, objy) = if ysize == 16 {
+          if object.yflip {
+            if line - object.y >= 8 {
+              (object.tile, object.y + 8)
+            } else {
+              (object.tile + 1, object.y)
+            }
+          } else {
+            if line - object.y >= 8 {
+              (object.tile + 1, object.y + 8)
+            } else {
+              (object.tile, object.y)
+            }
+          }
         } else {
           (object.tile, object.y)
         };
@@ -464,15 +476,16 @@ impl GPU {
         };
 
         for x in 0..8 {
-          if 0 <= (object.x + x) && (object.x + x) < WIDTH as i32 {
+          let screen_idx = object.x + x;
+          if 0 <= screen_idx && screen_idx < WIDTH as i32 {
             let tilerow_idx = if object.xflip { 7 - x } else { x } as usize;
             let pal_idx = tilerow[tilerow_idx] as usize;
             if pal_idx != 0 {
-              if object.priority || scanrow[(object.x + x) as usize] == 0 {
+              if object.priority || scanrow[screen_idx as usize] == 0 {
                 let color = pal[pal_idx];
-                let _row = self.line;
-                let _col = (object.x + x) as usize;
-                self.set_color(_row, _col, color);
+                let row = self.line;
+                let col = screen_idx as usize;
+                self.set_color(row, col, color);
               }
             }
           }
