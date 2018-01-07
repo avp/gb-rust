@@ -79,6 +79,11 @@ pub struct GPU {
   obj0_palette: [u8; 4],
   obj1_palette: [u8; 4],
 
+  switchwin: bool,
+  winmap: bool,
+  winx: u8,
+  winy: u8,
+
   lycly: bool,
   mode0int: bool,
   mode1int: bool,
@@ -119,6 +124,11 @@ impl GPU {
       objsize: false,
       obj0_palette: COLORS.clone(),
       obj1_palette: COLORS.clone(),
+
+      switchwin: false,
+      winmap: false,
+      winx: 0,
+      winy: 0,
 
       lycly: false,
       mode0int: false,
@@ -248,6 +258,8 @@ impl GPU {
           (if self.objsize { 0x04 } else { 0 }) |
           (if self.bgmap { 0x08 } else { 0 }) |
           (if self.bgtile { 0x10 } else { 0 }) |
+          (if self.switchwin { 0x20 } else { 0 }) |
+          (if self.winmap { 0x40 } else { 0 }) |
           (if self.switchlcd { 0x80 } else { 0 })
       }
       0xff41 => {
@@ -263,6 +275,8 @@ impl GPU {
       0xff43 => self.scx,
       0xff44 => self.line as u8,
       0xff45 => self.lyc,
+      0xff4a => self.winy,
+      0xff4b => self.winx,
       _ => 0,
     }
   }
@@ -275,6 +289,8 @@ impl GPU {
         self.objsize = (value & 0x04) != 0;
         self.bgmap = (value & 0x08) != 0;
         self.bgtile = (value & 0x10) != 0;
+        self.switchwin = (value & 0x20) != 0;
+        self.winmap = (value & 0x40) != 0;
         self.switchlcd = (value & 0x80) != 0;
       }
       0xff41 => {
@@ -304,6 +320,8 @@ impl GPU {
           }
         }
       }
+      0xff4a => self.winy = value,
+      0xff4b => self.winx = value,
       _ => (),
     }
   }
