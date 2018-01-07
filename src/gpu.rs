@@ -333,6 +333,10 @@ impl GPU {
       self.render_bg(&mut scanrow);
     }
 
+    if self.switchwin {
+      self.render_window(&mut scanrow);
+    }
+
     if self.switchobj {
       self.render_objects(&mut scanrow);
     }
@@ -355,6 +359,58 @@ impl GPU {
 
     // Add to that the horizontal offset (just offset / 8 pixels per tile).
     let mut map_col_offset = ((self.scx / 8) as usize % TILEMAP_WIDTH) as usize;
+    let mut tile = self.vram[map_row_offset + map_col_offset] as u16;
+    if !self.bgtile {
+      tile = (tile as i8 as i16 + 256) as u16;
+    };
+
+    let line = self.line;
+    for i in 0..WIDTH {
+      let color = self.tileset[tile as usize][row][col];
+
+      self.render[line * WIDTH + i] = self.bg_palette[color as usize];
+      scanrow[i] = color;
+
+      col += 1;
+      if col == 8 {
+        // Read another tile since this one is done.
+        col = 0;
+
+        map_col_offset = (map_col_offset + 1) % TILEMAP_WIDTH;
+        tile = self.vram[map_row_offset + map_col_offset] as u16;
+        if !self.bgtile {
+          tile = (tile as i8 as i16 + 256) as u16;
+        };
+      }
+    }
+  }
+
+  fn render_window(&mut self, scanrow: &mut [u8; WIDTH]) {
+    if self.line < self.winy as usize {
+      return;
+    }
+
+    if self.winx >= WIDTH as u8 + 7 {
+      return;
+    }
+
+    // Tile coordinate top left corner of the background.
+    let row = (self.line - self.winy as usize) % 8;
+    let mut col = ((self.winx - 8) % 8) as usize;
+
+    let map_base = if self.winmap { 0x1c00 } else { 0x1800 };
+
+    // Current screen line number + vertical scroll offset
+    // is the line of the bg.
+    // Confine it to the 256 possible tiles to ensure wraparound,
+    // divide by 8 pixels per tile,
+    // and multiply by TILEMAP_WIDTH tiles in each previous row of the map.
+    let map_row_offset = map_base +
+      ((((self.line - self.winy as usize) % 256) / 8) * TILEMAP_WIDTH);
+
+    // Add to that the horizontal offset (just offset / 8 pixels per tile).
+    let mut map_col_offset = (((self.winx - 8) / 8) as usize % TILEMAP_WIDTH) as
+      usize;
     let mut tile = self.vram[map_row_offset + map_col_offset] as u16;
     if !self.bgtile {
       tile = (tile as i8 as i16 + 256) as u16;
