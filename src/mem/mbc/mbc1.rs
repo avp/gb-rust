@@ -1,5 +1,4 @@
 use mem::mbc::MBC;
-use mem::mbc::MBCMode;
 
 #[derive(Debug)]
 pub struct MBC1 {
@@ -10,6 +9,12 @@ pub struct MBC1 {
   ram_bank: u8,
   ram_on: bool,
   mode: MBCMode,
+}
+
+#[derive(Debug, Copy, Clone)]
+enum MBCMode {
+  ROM,
+  RAM,
 }
 
 impl MBC1 {
@@ -62,6 +67,13 @@ impl MBC for MBC1 {
           }
         }
       }
+      0x6...0x7 => {
+        self.mode = if value & 0x1 == 0x0 {
+          MBCMode::ROM
+        } else {
+          MBCMode::RAM
+        };
+      }
       0xa...0xb => {
         let offset = self.ram_offset();
         self.ram[offset + (addr & 0x1fff) as usize] = value
@@ -80,7 +92,7 @@ mod tests {
   use super::*;
 
   fn init() -> MBC1 {
-    MBC1::new(vec![0; 0x20000], vec![0; 0x2000])
+    MBC1::new(vec![0; 0x20000], vec![0; 0x20000])
   }
 
   #[test]
@@ -90,5 +102,23 @@ mod tests {
     assert_eq!(mbc.rb(0), 1);
     mbc.rom[0x4000] = 2;
     assert_eq!(mbc.rb(0x4000), 2);
+
+    mbc.ram[0] = 1;
+    assert_eq!(mbc.rb(0xa000), 1);
+    mbc.ram[0x1000] = 2;
+    assert_eq!(mbc.rb(0xb000), 2);
+  }
+
+  #[test]
+  fn switch_bank() {
+    let mut mbc = init();
+    mbc.rom[0x9012] = 100;
+    mbc.wb(0x2000, 2); // ROM Bank = 2
+    assert_eq!(mbc.rb(0x5012), 100);
+
+    mbc.ram[0x5012] = 43;
+    mbc.wb(0x6000, 1); // MBC Mode = RAM
+    mbc.wb(0x4000, 2); // RAM Bank = 2
+    assert_eq!(mbc.rb(0xb012), 43);
   }
 }

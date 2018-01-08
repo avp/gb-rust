@@ -337,9 +337,7 @@ impl<'a> Memory<'a> {
       stdout().flush().unwrap();
     }
     match addr >> 12 {
-      0x0...0x7 => {
-        self.mbc.wb(addr, value);
-      }
+      0x0...0x7 => self.mbc.wb(addr, value),
       // GPU VRAM
       0x8...0x9 => {
         debug!("VRAM: 0x{:04x} <- 0x{:02x}", addr, value);
