@@ -9,12 +9,6 @@ pub trait MBC {
   fn eram(&self) -> &[u8];
 }
 
-#[derive(Debug, Copy, Clone)]
-enum MBCMode {
-  ROM,
-  RAM,
-}
-
 mod mbc0;
 pub use self::mbc0::MBC0;
 
