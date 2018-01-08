@@ -74,3 +74,21 @@ impl MBC for MBC1 {
     &self.ram
   }
 }
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  fn init() -> MBC1 {
+    MBC1::new(vec![0; 0x20000], vec![0; 0x2000])
+  }
+
+  #[test]
+  fn default_bank() {
+    let mut mbc = init();
+    mbc.rom[0] = 1;
+    assert_eq!(mbc.rb(0), 1);
+    mbc.rom[0x4000] = 2;
+    assert_eq!(mbc.rb(0x4000), 2);
+  }
+}
