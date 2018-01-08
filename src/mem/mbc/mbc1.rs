@@ -8,11 +8,11 @@ pub struct MBC1 {
   rom_bank: u8,
   ram_bank: u8,
   ram_on: bool,
-  mode: MBCMode,
+  mode: Mode,
 }
 
 #[derive(Debug, Copy, Clone)]
-enum MBCMode {
+enum Mode {
   ROM,
   RAM,
 }
@@ -26,7 +26,7 @@ impl MBC1 {
       rom_bank: 1,
       ram_bank: 0,
       ram_on: false,
-      mode: MBCMode::ROM,
+      mode: Mode::ROM,
     }
   }
 
@@ -61,17 +61,17 @@ impl MBC for MBC1 {
       }
       0x4...0x5 => {
         match self.mode {
-          MBCMode::RAM => self.ram_bank = value & 0x03,
-          MBCMode::ROM => {
+          Mode::RAM => self.ram_bank = value & 0x03,
+          Mode::ROM => {
             self.rom_bank = (self.rom_bank & 0x1f) + ((value & 0x03) << 5)
           }
         }
       }
       0x6...0x7 => {
         self.mode = if value & 0x1 == 0x0 {
-          MBCMode::ROM
+          Mode::ROM
         } else {
-          MBCMode::RAM
+          Mode::RAM
         };
       }
       0xa...0xb => {
