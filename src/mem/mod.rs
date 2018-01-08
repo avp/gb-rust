@@ -22,8 +22,29 @@ use std::io::stdout;
 use std::path::PathBuf;
 
 const WRAM_SIZE: usize = 0x2000;
-const ERAM_SIZE: usize = 0x2000;
 const ZRAM_SIZE: usize = 0xff;
+
+pub struct Memory<'a> {
+  wram: Vec<u8>,
+  zram: Vec<u8>,
+  key: KeyData,
+
+  sb: u8,
+  sc: u8,
+
+  mbc: Box<MBC + 'a>,
+  rom_offset: usize,
+  ram_offset: usize,
+  cartridge_type: CartridgeType,
+
+  pub interrupt_enable: u8,
+  pub interrupt_flags: u8,
+
+  gpu: Box<gpu::GPU>,
+  timer: Box<timer::Timer>,
+
+  savepath: PathBuf,
+}
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 enum CartridgeType {
@@ -48,7 +69,7 @@ impl fmt::Display for CartridgeType {
 }
 
 impl CartridgeType {
-  pub fn has_battery(&self) -> bool {
+  fn has_battery(&self) -> bool {
     match *self {
       CartridgeType::MBC1BatteryRAM => true,
       _ => false,
@@ -81,26 +102,38 @@ impl Error for LoadError {
   }
 }
 
-pub struct Memory<'a> {
-  wram: Vec<u8>,
-  zram: Vec<u8>,
-  key: KeyData,
+/// Gets the ROM size for the given byte value in the header.
+fn rom_size(v: u8) -> Result<usize, LoadError> {
+  const BANK_SIZE: usize = 0x4000;
+  match v {
+    0x00 => Ok(BANK_SIZE * 2),
+    0x01 => Ok(BANK_SIZE * 4),
+    0x02 => Ok(BANK_SIZE * 8),
+    0x03 => Ok(BANK_SIZE * 16),
+    0x04 => Ok(BANK_SIZE * 32),
+    0x05 => Ok(BANK_SIZE * 64),
+    0x06 => Ok(BANK_SIZE * 128),
+    0x07 => Ok(BANK_SIZE * 256),
+    0x08 => Ok(BANK_SIZE * 512),
+    0x52 => Ok(BANK_SIZE * 72),
+    0x53 => Ok(BANK_SIZE * 80),
+    0x54 => Ok(BANK_SIZE * 96),
+    _ => Err(LoadError::InvalidROM),
+  }
+}
 
-  sb: u8,
-  sc: u8,
-
-  mbc: Box<MBC + 'a>,
-  rom_offset: usize,
-  ram_offset: usize,
-  cartridge_type: CartridgeType,
-
-  pub interrupt_enable: u8,
-  pub interrupt_flags: u8,
-
-  gpu: Box<gpu::GPU>,
-  timer: Box<timer::Timer>,
-
-  savepath: PathBuf,
+/// Gets the ROM size for the given byte value in the header.
+fn ram_size(v: u8) -> Result<usize, LoadError> {
+  const BANK_SIZE: usize = 0x2000;
+  match v {
+    0x00 => Ok(BANK_SIZE),
+    0x01 => Ok(BANK_SIZE),
+    0x02 => Ok(BANK_SIZE),
+    0x03 => Ok(BANK_SIZE * 4),
+    0x04 => Ok(BANK_SIZE * 16),
+    0x05 => Ok(BANK_SIZE * 8),
+    _ => Err(LoadError::InvalidROM),
+  }
 }
 
 impl<'a> Memory<'a> {
@@ -118,6 +151,11 @@ impl<'a> Memory<'a> {
       None => return Err(LoadError::InvalidROM),
     };
     info!("Loading cartridge: {}", cartridge_type);
+
+    let ram_size = match rom.get(0x0149) {
+      Some(&v) => ram_size(v)?,
+      None => return Err(LoadError::InvalidROM),
+    };
 
     let mut eram: Vec<u8> = vec![];
     let savepath = filename.with_extension("sav");
@@ -137,8 +175,8 @@ impl<'a> Memory<'a> {
       }
     }
     // Error correction - this was an invalid save file.
-    if eram.len() != ERAM_SIZE {
-      eram = vec![0; ERAM_SIZE];
+    if eram.len() != ram_size {
+      eram = vec![0; ram_size];
     }
 
     let mbc: Box<MBC> = match cartridge_type {
