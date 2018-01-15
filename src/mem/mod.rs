@@ -136,6 +136,32 @@ fn ram_size(v: u8) -> Result<usize, LoadError> {
   }
 }
 
+const SAV_EXTENSION: &'static str = "sav";
+
+fn read_save(
+  cartridge_type: &CartridgeType,
+  filename: &PathBuf,
+) -> Option<Vec<u8>> {
+  let mut savefile: Option<Vec<u8>> = None;
+  let savepath = filename.with_extension(SAV_EXTENSION);
+  if cartridge_type.has_battery() && savepath.is_file() {
+    // Load from save file.
+    if let Ok(mut f) = File::open(&savepath) {
+      println!("Reading save file: {}", savepath.to_str().unwrap());
+      let mut buf = vec![];
+      match f.read_to_end(&mut buf) {
+        Ok(_) => {
+          savefile = Some(buf);
+        }
+        Err(_) => {
+          eprintln!("Unable to read save file: {}", savepath.to_str().unwrap());
+        }
+      };
+    }
+  }
+  savefile
+}
+
 impl<'a> Memory<'a> {
   pub fn new(rom: Vec<u8>, filename: PathBuf) -> Result<Memory<'a>, LoadError> {
     let cartridge_type = match rom.get(0x0147) {
@@ -157,34 +183,22 @@ impl<'a> Memory<'a> {
       None => return Err(LoadError::InvalidROM),
     };
 
-    let mut eram: Vec<u8> = vec![];
-    let savepath = filename.with_extension("sav");
-    if cartridge_type.has_battery() && savepath.is_file() {
-      // Load ERAM from save file.
-      if let Ok(mut f) = File::open(&savepath) {
-        println!("Reading save file: {}", savepath.to_str().unwrap());
-        match f.read_to_end(&mut eram) {
-          Ok(_) => (),
-          Err(_) => {
-            eprintln!(
-              "Unable to read save file: {}",
-              savepath.to_str().unwrap()
-            );
-          }
+    let mbc: Box<MBC> =
+      if let Some(save) = read_save(&cartridge_type, &filename) {
+        match cartridge_type {
+          CartridgeType::MBC0 => Box::new(MBC0::new(rom, ram_size)),
+          CartridgeType::MBC1 |
+          CartridgeType::MBC1RAM |
+          CartridgeType::MBC1BatteryRAM => Box::new(MBC1::from_save(rom, save)),
         }
-      }
-    }
-    // Error correction - this was an invalid save file.
-    if eram.len() != ram_size {
-      eram = vec![0; ram_size];
-    }
-
-    let mbc: Box<MBC> = match cartridge_type {
-      CartridgeType::MBC0 => Box::new(MBC0::new(rom, eram)),
-      CartridgeType::MBC1 |
-      CartridgeType::MBC1RAM |
-      CartridgeType::MBC1BatteryRAM => Box::new(MBC1::new(rom, eram)),
-    };
+      } else {
+        match cartridge_type {
+          CartridgeType::MBC0 => Box::new(MBC0::new(rom, ram_size)),
+          CartridgeType::MBC1 |
+          CartridgeType::MBC1RAM |
+          CartridgeType::MBC1BatteryRAM => Box::new(MBC1::new(rom, ram_size)),
+        }
+      };
 
     let mut result = Memory {
       wram: vec![0; WRAM_SIZE],
@@ -205,7 +219,7 @@ impl<'a> Memory<'a> {
       gpu: Box::new(gpu::GPU::new()),
       timer: Box::new(timer::Timer::new()),
 
-      savepath: savepath,
+      savepath: filename.with_extension(SAV_EXTENSION),
     };
     result.power_on();
 
@@ -438,7 +452,7 @@ impl<'a> Memory<'a> {
       match File::create(&savepath) {
         Ok(mut f) => {
           println!("Writing save file: {}", savepath.to_str().unwrap());
-          match f.write(&self.mbc.eram()) {
+          match f.write(&self.mbc.to_save()) {
             Ok(_) => (),
             Err(e) => {
               eprintln!(

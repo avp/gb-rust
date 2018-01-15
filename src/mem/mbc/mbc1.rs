@@ -18,7 +18,19 @@ enum Mode {
 }
 
 impl MBC1 {
-  pub fn new(rom: Vec<u8>, ram: Vec<u8>) -> Self {
+  pub fn new(rom: Vec<u8>, ram_size: usize) -> Self {
+    Self {
+      rom: rom,
+      ram: vec![0; ram_size],
+
+      rom_bank: 1,
+      ram_bank: 0,
+      ram_on: false,
+      mode: Mode::ROM,
+    }
+  }
+
+  pub fn from_save(rom: Vec<u8>, ram: Vec<u8>) -> Self {
     Self {
       rom: rom,
       ram: ram,
@@ -82,8 +94,8 @@ impl MBC for MBC1 {
     }
   }
 
-  fn eram(&self) -> &[u8] {
-    &self.ram
+  fn to_save(&self) -> Vec<u8> {
+    self.ram.clone()
   }
 }
 
@@ -92,7 +104,7 @@ mod tests {
   use super::*;
 
   fn init() -> MBC1 {
-    MBC1::new(vec![0; 0x20000], vec![0; 0x20000])
+    MBC1::new(vec![0; 0x20000], 0x20000)
   }
 
   #[test]

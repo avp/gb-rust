@@ -7,7 +7,14 @@ pub struct MBC0 {
 }
 
 impl MBC0 {
-  pub fn new(rom: Vec<u8>, ram: Vec<u8>) -> Self {
+  pub fn new(rom: Vec<u8>, ram_size: usize) -> Self {
+    Self {
+      rom: rom,
+      ram: vec![0; ram_size],
+    }
+  }
+
+  pub fn from_save(rom: Vec<u8>, ram: Vec<u8>) -> Self {
     Self { rom, ram }
   }
 }
@@ -30,7 +37,7 @@ impl MBC for MBC0 {
     }
   }
 
-  fn eram(&self) -> &[u8] {
-    &self.ram
+  fn to_save(&self) -> Vec<u8> {
+    self.ram.clone()
   }
 }

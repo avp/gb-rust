@@ -5,8 +5,9 @@ pub trait MBC {
   /// Write `value` to the MBC at `addr`, which can update internal state.
   fn wb(&mut self, addr: u16, value: u8);
 
-  /// Get a reference to the full cartridge RAM.
-  fn eram(&self) -> &[u8];
+  /// Get the bytes to save to disk.
+  /// Can include more than just ERAM, if, for example, the MBC has an RTC.
+  fn to_save(&self) -> Vec<u8>;
 }
 
 mod mbc0;
