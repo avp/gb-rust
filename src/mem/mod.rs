@@ -40,8 +40,8 @@ pub struct Memory<'a> {
   pub interrupt_enable: u8,
   pub interrupt_flags: u8,
 
-  gpu: Box<gpu::GPU>,
-  timer: Box<timer::Timer>,
+  gpu: gpu::GPU,
+  timer: timer::Timer,
 
   savepath: PathBuf,
 }
@@ -164,10 +164,10 @@ impl<'a> Memory<'a> {
     let cartridge_type = match rom.get(0x0147) {
       Some(&t) => {
         match t {
-          0 => CartridgeType::MBC0,
-          1 => CartridgeType::MBC1,
-          2 => CartridgeType::MBC1RAM,
-          3 => CartridgeType::MBC1BatteryRAM,
+          0x00 => CartridgeType::MBC0,
+          0x01 => CartridgeType::MBC1,
+          0x02 => CartridgeType::MBC1RAM,
+          0x03 => CartridgeType::MBC1BatteryRAM,
           t => return Err(LoadError::InvalidCartridgeType(t)),
         }
       }
@@ -179,6 +179,7 @@ impl<'a> Memory<'a> {
       Some(&v) => ram_size(v)?,
       None => return Err(LoadError::InvalidROM),
     };
+    info!("RAM size: 0x{:04x} bytes", ram_size);
 
     let mbc: Box<MBC> = match cartridge_type {
       CartridgeType::MBC0 => Box::new(MBC0::new(rom, ram_size)),
@@ -209,8 +210,8 @@ impl<'a> Memory<'a> {
       interrupt_enable: 0,
       interrupt_flags: 0,
 
-      gpu: Box::new(gpu::GPU::new()),
-      timer: Box::new(timer::Timer::new()),
+      gpu: gpu::GPU::new(),
+      timer: timer::Timer::new(),
 
       savepath: filename.with_extension(SAV_EXTENSION),
     };
