@@ -183,22 +183,18 @@ impl<'a> Memory<'a> {
       None => return Err(LoadError::InvalidROM),
     };
 
-    let mbc: Box<MBC> =
-      if let Some(save) = read_save(&cartridge_type, &filename) {
-        match cartridge_type {
-          CartridgeType::MBC0 => Box::new(MBC0::new(rom, ram_size)),
-          CartridgeType::MBC1 |
-          CartridgeType::MBC1RAM |
-          CartridgeType::MBC1BatteryRAM => Box::new(MBC1::from_save(rom, save)),
+    let mbc: Box<MBC> = match cartridge_type {
+      CartridgeType::MBC0 => Box::new(MBC0::new(rom, ram_size)),
+      CartridgeType::MBC1 |
+      CartridgeType::MBC1RAM |
+      CartridgeType::MBC1BatteryRAM => {
+        if let Some(save) = read_save(&cartridge_type, &filename) {
+          Box::new(MBC1::from_save(rom, save))
+        } else {
+          Box::new(MBC1::new(rom, ram_size))
         }
-      } else {
-        match cartridge_type {
-          CartridgeType::MBC0 => Box::new(MBC0::new(rom, ram_size)),
-          CartridgeType::MBC1 |
-          CartridgeType::MBC1RAM |
-          CartridgeType::MBC1BatteryRAM => Box::new(MBC1::new(rom, ram_size)),
-        }
-      };
+      }
+    };
 
     let mut result = Memory {
       wram: vec![0; WRAM_SIZE],
