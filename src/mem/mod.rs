@@ -138,13 +138,10 @@ fn ram_size(v: u8) -> Result<usize, LoadError> {
 
 const SAV_EXTENSION: &'static str = "sav";
 
-fn read_save(
-  cartridge_type: &CartridgeType,
-  filename: &PathBuf,
-) -> Option<Vec<u8>> {
+fn read_save(filename: &PathBuf) -> Option<Vec<u8>> {
   let mut savefile: Option<Vec<u8>> = None;
   let savepath = filename.with_extension(SAV_EXTENSION);
-  if cartridge_type.has_battery() && savepath.is_file() {
+  if savepath.is_file() {
     // Load from save file.
     if let Ok(mut f) = File::open(&savepath) {
       println!("Reading save file: {}", savepath.to_str().unwrap());
@@ -186,9 +183,9 @@ impl<'a> Memory<'a> {
     let mbc: Box<MBC> = match cartridge_type {
       CartridgeType::MBC0 => Box::new(MBC0::new(rom, ram_size)),
       CartridgeType::MBC1 |
-      CartridgeType::MBC1RAM |
+      CartridgeType::MBC1RAM => Box::new(MBC1::new(rom, ram_size)),
       CartridgeType::MBC1BatteryRAM => {
-        if let Some(save) = read_save(&cartridge_type, &filename) {
+        if let Some(save) = read_save(&filename) {
           Box::new(MBC1::from_save(rom, save))
         } else {
           Box::new(MBC1::new(rom, ram_size))
