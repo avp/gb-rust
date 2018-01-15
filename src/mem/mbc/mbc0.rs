@@ -13,10 +13,6 @@ impl MBC0 {
       ram: vec![0; ram_size],
     }
   }
-
-  pub fn from_save(rom: Vec<u8>, ram: Vec<u8>) -> Self {
-    Self { rom, ram }
-  }
 }
 
 impl MBC for MBC0 {
