@@ -34,6 +34,6 @@ impl MBC for MBC0 {
   }
 
   fn to_save(&self) -> Vec<u8> {
-    self.ram.clone()
+    panic!("Cannot save MBC0");
   }
 }
