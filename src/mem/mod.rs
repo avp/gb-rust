@@ -33,8 +33,6 @@ pub struct Memory<'a> {
   sc: u8,
 
   mbc: Box<MBC + 'a>,
-  rom_offset: usize,
-  ram_offset: usize,
   cartridge_type: CartridgeType,
 
   pub interrupt_enable: u8,
@@ -48,7 +46,7 @@ pub struct Memory<'a> {
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 enum CartridgeType {
-  MBC0,
+  MBC0, // No MBC
   MBC1,
   MBC1RAM,
   MBC1BatteryRAM,
@@ -122,7 +120,7 @@ fn rom_size(v: u8) -> Result<usize, LoadError> {
   }
 }
 
-/// Gets the ROM size for the given byte value in the header.
+/// Gets the RAM size for the given byte value in the header.
 fn ram_size(v: u8) -> Result<usize, LoadError> {
   const BANK_SIZE: usize = 0x2000;
   match v {
@@ -203,8 +201,6 @@ impl<'a> Memory<'a> {
       sc: 0,
 
       mbc: mbc,
-      rom_offset: 0x4000,
-      ram_offset: 0x0000,
       cartridge_type: cartridge_type,
 
       interrupt_enable: 0,
@@ -466,6 +462,5 @@ impl<'a> Memory<'a> {
         }
       }
     }
-
   }
 }
