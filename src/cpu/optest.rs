@@ -3,7 +3,7 @@ use mem::Memory;
 
 use std::path::PathBuf;
 
-fn init<'a>() -> (CPU, Memory<'a>) {
+fn init() -> (CPU, Memory) {
   let mut cpu = CPU::new();
   let mem = Memory::new(vec![0; 0x4000], PathBuf::from("")).unwrap();
   // Se the PC to start in WRAM.

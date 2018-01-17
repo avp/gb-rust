@@ -24,7 +24,7 @@ use std::path::PathBuf;
 const WRAM_SIZE: usize = 0x2000;
 const ZRAM_SIZE: usize = 0xff;
 
-pub struct Memory<'a> {
+pub struct Memory {
   wram: Vec<u8>,
   zram: Vec<u8>,
   key: KeyData,
@@ -32,7 +32,7 @@ pub struct Memory<'a> {
   sb: u8,
   sc: u8,
 
-  mbc: Box<MBC + 'a>,
+  mbc: Box<MBC>,
   cartridge_type: CartridgeType,
 
   pub interrupt_enable: u8,
@@ -157,8 +157,8 @@ fn read_save(filename: &PathBuf) -> Option<Vec<u8>> {
   savefile
 }
 
-impl<'a> Memory<'a> {
-  pub fn new(rom: Vec<u8>, filename: PathBuf) -> Result<Memory<'a>, LoadError> {
+impl Memory {
+  pub fn new(rom: Vec<u8>, filename: PathBuf) -> Result<Memory, LoadError> {
     let cartridge_type = match rom.get(0x0147) {
       Some(&t) => {
         match t {

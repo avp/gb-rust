@@ -30,9 +30,9 @@ impl Speed {
 
 const MS_PER_WAIT: u32 = 16;
 
-pub struct GameBoy<'a> {
+pub struct GameBoy {
   cpu: CPU,
-  mem: Memory<'a>,
+  mem: Memory,
 
   pub speed: Speed,
   pub title: String,
@@ -57,11 +57,8 @@ impl Error for RunError {
   }
 }
 
-impl<'a> GameBoy<'a> {
-  pub fn new(
-    rom: Vec<u8>,
-    filename: PathBuf,
-  ) -> Result<GameBoy<'a>, Box<Error>> {
+impl GameBoy {
+  pub fn new(rom: Vec<u8>, filename: PathBuf) -> Result<GameBoy, Box<Error>> {
     let title =
       String::from_utf8(rom[0x134..0x144].to_vec()).unwrap_or(String::new());
     Ok(GameBoy {
@@ -166,7 +163,7 @@ impl<'a> GameBoy<'a> {
   }
 }
 
-impl<'a> Drop for GameBoy<'a> {
+impl Drop for GameBoy {
   fn drop(&mut self) {
     self.mem.save_ram();
   }
