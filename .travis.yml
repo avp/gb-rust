@@ -4,11 +4,10 @@ os:
 rust:
   - stable
   - beta
-  - nightly
 cache: cargo
 before_script:
   - export PATH="$PATH:$HOME/.cargo/bin"
-  - which rustfmt || cargo install --force rustfmt-nightly
+  - cargo install rustfmt || true
 script:
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then cargo fmt -- --write-mode=diff; fi
   - cargo build
