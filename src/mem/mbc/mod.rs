@@ -15,3 +15,6 @@ pub use self::mbc0::MBC0;
 
 mod mbc1;
 pub use self::mbc1::MBC1;
+
+mod mbc3;
+pub use self::mbc3::MBC3;

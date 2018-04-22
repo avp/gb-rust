@@ -9,9 +9,7 @@ pub use self::key::Key;
 use self::key::KeyData;
 use gpu;
 
-use self::mbc::MBC;
-use self::mbc::MBC0;
-use self::mbc::MBC1;
+use self::mbc::{MBC, MBC0, MBC1, MBC3};
 
 use std::error::Error;
 use std::fmt;
@@ -50,6 +48,9 @@ enum CartridgeType {
   MBC1,
   MBC1RAM,
   MBC1BatteryRAM,
+  MBC3,
+  MBC3RAM,
+  MBC3BatteryRAM,
 }
 
 impl fmt::Display for CartridgeType {
@@ -60,6 +61,11 @@ impl fmt::Display for CartridgeType {
       CartridgeType::MBC1RAM => write!(f, "MBC1 with RAM")?,
       CartridgeType::MBC1BatteryRAM => {
         write!(f, "MBC1 with battery-backed RAM")?
+      }
+      CartridgeType::MBC3 => write!(f, "MBC3")?,
+      CartridgeType::MBC3RAM => write!(f, "MBC3 with RAM")?,
+      CartridgeType::MBC3BatteryRAM => {
+        write!(f, "MBC3 with battery-backed RAM")?
       }
     }
     Ok(())
@@ -166,6 +172,9 @@ impl Memory {
           0x01 => CartridgeType::MBC1,
           0x02 => CartridgeType::MBC1RAM,
           0x03 => CartridgeType::MBC1BatteryRAM,
+          0x11 => CartridgeType::MBC3,
+          0x12 => CartridgeType::MBC3RAM,
+          0x13 => CartridgeType::MBC3BatteryRAM,
           t => return Err(LoadError::InvalidCartridgeType(t)),
         }
       }
@@ -188,6 +197,15 @@ impl Memory {
           Box::new(MBC1::from_save(rom, save))
         } else {
           Box::new(MBC1::new(rom, ram_size))
+        }
+      }
+      CartridgeType::MBC3 |
+      CartridgeType::MBC3RAM => Box::new(MBC3::new(rom, ram_size)),
+      CartridgeType::MBC3BatteryRAM => {
+        if let Some(save) = read_save(&filename) {
+          Box::new(MBC3::from_save(rom, save))
+        } else {
+          Box::new(MBC3::new(rom, ram_size))
         }
       }
     };
