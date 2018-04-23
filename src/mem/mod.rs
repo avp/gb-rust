@@ -1,22 +1,22 @@
 #![cfg_attr(feature = "cargo-clippy", allow(match_same_arms))]
 
 mod key;
-mod timer;
 mod mbc;
+mod timer;
 
 pub use self::key::Key;
 
 use self::key::KeyData;
 use gpu;
 
-use self::mbc::{MBC, MBC0, MBC1, MBC3};
+use self::mbc::{MBC0, MBC1, MBC3, MBC};
 
 use std::error::Error;
 use std::fmt;
 use std::fs::File;
+use std::io::stdout;
 use std::io::Read;
 use std::io::Write;
-use std::io::stdout;
 use std::path::PathBuf;
 
 const WRAM_SIZE: usize = 0x2000;
@@ -148,14 +148,20 @@ fn read_save(filename: &PathBuf) -> Option<Vec<u8>> {
   if savepath.is_file() {
     // Load from save file.
     if let Ok(mut f) = File::open(&savepath) {
-      println!("Reading save file: {}", savepath.to_str().unwrap());
+      println!(
+        "Reading save file: {}",
+        savepath.to_str().unwrap()
+      );
       let mut buf = vec![];
       match f.read_to_end(&mut buf) {
         Ok(_) => {
           savefile = Some(buf);
         }
         Err(_) => {
-          eprintln!("Unable to read save file: {}", savepath.to_str().unwrap());
+          eprintln!(
+            "Unable to read save file: {}",
+            savepath.to_str().unwrap()
+          );
         }
       };
     }
@@ -166,18 +172,16 @@ fn read_save(filename: &PathBuf) -> Option<Vec<u8>> {
 impl Memory {
   pub fn new(rom: Vec<u8>, filename: PathBuf) -> Result<Memory, LoadError> {
     let cartridge_type = match rom.get(0x0147) {
-      Some(&t) => {
-        match t {
-          0x00 => CartridgeType::MBC0,
-          0x01 => CartridgeType::MBC1,
-          0x02 => CartridgeType::MBC1RAM,
-          0x03 => CartridgeType::MBC1BatteryRAM,
-          0x11 => CartridgeType::MBC3,
-          0x12 => CartridgeType::MBC3RAM,
-          0x13 => CartridgeType::MBC3BatteryRAM,
-          t => return Err(LoadError::InvalidCartridgeType(t)),
-        }
-      }
+      Some(&t) => match t {
+        0x00 => CartridgeType::MBC0,
+        0x01 => CartridgeType::MBC1,
+        0x02 => CartridgeType::MBC1RAM,
+        0x03 => CartridgeType::MBC1BatteryRAM,
+        0x11 => CartridgeType::MBC3,
+        0x12 => CartridgeType::MBC3RAM,
+        0x13 => CartridgeType::MBC3BatteryRAM,
+        t => return Err(LoadError::InvalidCartridgeType(t)),
+      },
       None => return Err(LoadError::InvalidROM),
     };
     info!("Loading cartridge: {}", cartridge_type);
@@ -190,8 +194,9 @@ impl Memory {
 
     let mbc: Box<MBC> = match cartridge_type {
       CartridgeType::MBC0 => Box::new(MBC0::new(rom, ram_size)),
-      CartridgeType::MBC1 |
-      CartridgeType::MBC1RAM => Box::new(MBC1::new(rom, ram_size)),
+      CartridgeType::MBC1 | CartridgeType::MBC1RAM => {
+        Box::new(MBC1::new(rom, ram_size))
+      }
       CartridgeType::MBC1BatteryRAM => {
         if let Some(save) = read_save(&filename) {
           Box::new(MBC1::from_save(rom, save))
@@ -199,8 +204,9 @@ impl Memory {
           Box::new(MBC1::new(rom, ram_size))
         }
       }
-      CartridgeType::MBC3 |
-      CartridgeType::MBC3RAM => Box::new(MBC3::new(rom, ram_size)),
+      CartridgeType::MBC3 | CartridgeType::MBC3RAM => {
+        Box::new(MBC3::new(rom, ram_size))
+      }
       CartridgeType::MBC3BatteryRAM => {
         if let Some(save) = read_save(&filename) {
           Box::new(MBC3::from_save(rom, save))
@@ -459,7 +465,10 @@ impl Memory {
       // Load ERAM from save file.
       match File::create(&savepath) {
         Ok(mut f) => {
-          println!("Writing save file: {}", savepath.to_str().unwrap());
+          println!(
+            "Writing save file: {}",
+            savepath.to_str().unwrap()
+          );
           match f.write(&self.mbc.to_save()) {
             Ok(_) => (),
             Err(e) => {

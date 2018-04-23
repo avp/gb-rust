@@ -1,6 +1,6 @@
-use cpu::CPU;
-use cpu::Registers;
 use cpu::reg;
+use cpu::Registers;
+use cpu::CPU;
 
 use mem::Memory;
 
@@ -34,7 +34,7 @@ impl CPU {
   pub fn step(&mut self, mem: &mut Memory) -> u32 {
     debug!(
       "pc=0x{:04x} opcode=0x{:02x} 0x{:02x} 0x{:02x} \
-      A=0x{:02x} C=0x{:02x} HL=0x{:04x} 0xa100=0x{:02x}",
+       A=0x{:02x} C=0x{:02x} HL=0x{:04x} 0xa100=0x{:02x}",
       self.regs.pc,
       mem.rb(self.regs.pc),
       mem.rb(self.regs.pc + 1),
@@ -44,7 +44,11 @@ impl CPU {
       self.regs.hl(),
       mem.rb(0xa100),
     );
-    let m = if self.halt { 1 } else { self.exec(mem) };
+    let m = if self.halt {
+      1
+    } else {
+      self.exec(mem)
+    };
     self.regs.m = m;
     self.regs.t = 4 * m;
     self.m += self.regs.m;
@@ -60,12 +64,12 @@ impl CPU {
         let result = mem.rb(self.regs.pc);
         self.regs.pc += 1;
         result
-      }}
+      }};
     }
     macro_rules! xx {
       () => {{
         panic!("Invalid opcode");
-      }}
+      }};
     }
 
     macro_rules! read_u16_le {
@@ -73,39 +77,39 @@ impl CPU {
         let a = bump!() as u16;
         let b = bump!() as u16;
         (b << 8) | a
-      }}
+      }};
     }
     macro_rules! ld_nn_n {
       ($reg:ident) => {{
         let imm = bump!();
         self.regs.$reg = imm;
         2
-      }}
+      }};
     }
     macro_rules! ld_n_nn {
       ($r1:ident, $r2:ident) => {{
         self.regs.$r2 = bump!();
         self.regs.$r1 = bump!();
         3
-      }}
+      }};
     }
     macro_rules! ld_r1_r2 {
       ($r1:ident, $r2:ident) => {{
         self.regs.$r1 = self.regs.$r2;
         1
-      }}
+      }};
     }
     macro_rules! ld_r1_r2m {
       ($r1:ident, $r2m:ident) => {{
         self.regs.$r1 = mem.rb(self.regs.$r2m());
         2
-      }}
+      }};
     }
     macro_rules! ld_r1m_r2 {
       ($r1m:ident, $r2:ident) => {{
         mem.wb(self.regs.$r1m(), self.regs.$r2);
         2
-      }}
+      }};
     }
 
     macro_rules! push {
@@ -113,7 +117,7 @@ impl CPU {
         let r = self.regs.$r();
         self.push(mem, r);
         4
-      }}
+      }};
     }
     macro_rules! pop {
       ($r1:ident, $r2:ident) => {{
@@ -121,7 +125,7 @@ impl CPU {
         self.regs.$r1 = mem.rb(self.regs.sp + 1);
         self.regs.sp += 2;
         3
-      }}
+      }};
     }
 
     macro_rules! add_a_n {
@@ -131,27 +135,37 @@ impl CPU {
         let (result, c) = a.overflowing_add(n);
         self.regs.a = result;
         self.regs.f = 0;
-        self.regs.f |= if result == 0 {reg::Z} else {0};
-        self.regs.f |= if (a & 0xf) + (n & 0xf) > 0xf {reg::H} else {0};
-        self.regs.f |= if c {reg::C} else {0};
+        self.regs.f |= if result == 0 { reg::Z } else { 0 };
+        self.regs.f |= if (a & 0xf) + (n & 0xf) > 0xf {
+          reg::H
+        } else {
+          0
+        };
+        self.regs.f |= if c { reg::C } else { 0 };
         1
-      }}
+      }};
     }
     macro_rules! adc_a_n {
       ($n:expr) => {{
         let a = self.regs.a;
         let n = $n;
-        let c = if self.regs.c() {1} else {0};
+        let c = if self.regs.c() { 1 } else { 0 };
         let result = a.wrapping_add(n).wrapping_add(c);
         self.regs.a = result;
         self.regs.f = 0;
-        self.regs.f |= if result == 0 {reg::Z} else {0};
-        self.regs.f |=
-          if (a & 0xf) + (n & 0xf) + c > 0xf {reg::H} else {0};
-        self.regs.f |=
-          if (a as u16) + (n as u16) + (c as u16) > 0xff {reg::C} else {0};
+        self.regs.f |= if result == 0 { reg::Z } else { 0 };
+        self.regs.f |= if (a & 0xf) + (n & 0xf) + c > 0xf {
+          reg::H
+        } else {
+          0
+        };
+        self.regs.f |= if (a as u16) + (n as u16) + (c as u16) > 0xff {
+          reg::C
+        } else {
+          0
+        };
         1
-      }}
+      }};
     }
 
     macro_rules! sub_a_n {
@@ -161,47 +175,71 @@ impl CPU {
         let (result, c) = a.overflowing_sub(n);
         self.regs.a = result;
         self.regs.f = reg::N;
-        self.regs.f |= if result == 0 {reg::Z} else {0};
-        self.regs.f |= if c {reg::C} else {0};
-        self.regs.f |= if (a & 0xf) < (n & 0xf) {reg::H} else {0};
+        self.regs.f |= if result == 0 { reg::Z } else { 0 };
+        self.regs.f |= if c { reg::C } else { 0 };
+        self.regs.f |= if (a & 0xf) < (n & 0xf) {
+          reg::H
+        } else {
+          0
+        };
         1
-      }}
+      }};
     }
     macro_rules! sbc_a_n {
       ($n:expr) => {{
         let a = self.regs.a;
         let n = $n;
-        let c = if self.regs.c() {1} else {0};
+        let c = if self.regs.c() { 1 } else { 0 };
         let result = a.wrapping_sub(n).wrapping_sub(c);
         self.regs.a = result;
         self.regs.f = reg::N;
-        self.regs.f |= if result == 0 {reg::Z} else {0};
-        self.regs.f |= if (a as u16) < (n as u16 + c as u16) {reg::C} else {0};
-        self.regs.f |= if (a & 0xf) < ((n & 0xf) + c) {reg::H} else {0};
+        self.regs.f |= if result == 0 { reg::Z } else { 0 };
+        self.regs.f |= if (a as u16) < (n as u16 + c as u16) {
+          reg::C
+        } else {
+          0
+        };
+        self.regs.f |= if (a & 0xf) < ((n & 0xf) + c) {
+          reg::H
+        } else {
+          0
+        };
         1
-      }}
+      }};
     }
 
     macro_rules! and_a_n {
       ($n:expr) => {{
         self.regs.a &= $n;
-        self.regs.f = if self.regs.a == 0 {reg::Z} else {0} | reg::H;
+        self.regs.f = if self.regs.a == 0 {
+          reg::Z
+        } else {
+          0
+        } | reg::H;
         1
-      }}
+      }};
     }
     macro_rules! or_a_n {
       ($n:expr) => {{
         self.regs.a |= $n;
-        self.regs.f = if self.regs.a == 0 {reg::Z} else {0};
+        self.regs.f = if self.regs.a == 0 {
+          reg::Z
+        } else {
+          0
+        };
         1
-      }}
+      }};
     }
     macro_rules! xor_a_n {
       ($n:expr) => {{
         self.regs.a ^= $n;
-        self.regs.f = if self.regs.a == 0 {reg::Z} else {0};
+        self.regs.f = if self.regs.a == 0 {
+          reg::Z
+        } else {
+          0
+        };
         1
-      }}
+      }};
     }
 
     macro_rules! cp_a_n {
@@ -209,11 +247,15 @@ impl CPU {
         let a = self.regs.a;
         let n = $n;
         self.regs.f = reg::N;
-        self.regs.f |= if a == n {reg::Z} else {0};
-        self.regs.f |= if (a & 0xf) < (n & 0xf) {reg::H} else {0};
-        self.regs.f |= if a < n {reg::C} else {0};
+        self.regs.f |= if a == n { reg::Z } else { 0 };
+        self.regs.f |= if (a & 0xf) < (n & 0xf) {
+          reg::H
+        } else {
+          0
+        };
+        self.regs.f |= if a < n { reg::C } else { 0 };
         1
-      }}
+      }};
     }
 
     macro_rules! inc {
@@ -223,12 +265,12 @@ impl CPU {
         self.regs.$n = result;
         let c = self.regs.c();
         self.regs.f = 0;
-        self.regs.f |= if result == 0 {reg::Z} else {0};
-        self.regs.f |= if n & 0xf == 0xf {reg::H} else {0};
+        self.regs.f |= if result == 0 { reg::Z } else { 0 };
+        self.regs.f |= if n & 0xf == 0xf { reg::H } else { 0 };
         // Preserve C.
-        self.regs.f |= if c {reg::C} else {0};
+        self.regs.f |= if c { reg::C } else { 0 };
         1
-      }}
+      }};
     }
     macro_rules! dec {
       ($n:ident) => {{
@@ -237,12 +279,12 @@ impl CPU {
         self.regs.$n = result;
         let c = self.regs.c();
         self.regs.f = reg::N;
-        self.regs.f |= if result == 0 {reg::Z} else {0};
-        self.regs.f |= if n & 0xf == 0 {reg::H} else {0};
+        self.regs.f |= if result == 0 { reg::Z } else { 0 };
+        self.regs.f |= if n & 0xf == 0 { reg::H } else { 0 };
         // Preserve C.
-        self.regs.f |= if c {reg::C} else {0};
+        self.regs.f |= if c { reg::C } else { 0 };
         1
-      }}
+      }};
     }
 
     macro_rules! inc_nn {
@@ -253,7 +295,7 @@ impl CPU {
         self.regs.$high = (n >> 8) as u8;
         self.regs.$low = (n & 0x00ff) as u8;
         2
-      }}
+      }};
     }
     macro_rules! dec_nn {
       ($high:ident, $low:ident) => {{
@@ -263,7 +305,7 @@ impl CPU {
         self.regs.$high = (n >> 8) as u8;
         self.regs.$low = (n & 0x00ff) as u8;
         2
-      }}
+      }};
     }
 
     macro_rules! add_hl_n {
@@ -271,14 +313,16 @@ impl CPU {
         let hl = self.regs.hl();
         let n = $n;
         let (res, c) = hl.overflowing_add(n);
-        self.regs.f =
-            if self.regs.z() {reg::Z} else {0}
-          | if (hl as u32 & 0xfff) > (res as u32 & 0xfff) {reg::H} else {0}
-          | if c {reg::C} else {0};
+        self.regs.f = if self.regs.z() { reg::Z } else { 0 }
+          | if (hl as u32 & 0xfff) > (res as u32 & 0xfff) {
+            reg::H
+          } else {
+            0
+          } | if c { reg::C } else { 0 };
         self.regs.h = (res >> 8) as u8;
         self.regs.l = (res & 0xff) as u8;
         2
-      }}
+      }};
     }
 
     macro_rules! jp {
@@ -286,7 +330,7 @@ impl CPU {
         let target = read_u16_le!();
         self.regs.pc = target;
         4
-      }}
+      }};
     }
     macro_rules! jpc {
       ($e:expr) => {{
@@ -296,7 +340,7 @@ impl CPU {
           self.regs.pc += 2;
           3
         }
-      }}
+      }};
     }
 
     macro_rules! jr {
@@ -306,7 +350,7 @@ impl CPU {
         let target = ((pc as u32 as i32) + n) as u16;
         self.regs.pc = target;
         3
-      }}
+      }};
     }
     macro_rules! jrc {
       ($e:expr) => {{
@@ -316,9 +360,8 @@ impl CPU {
           self.regs.pc += 1;
           2
         }
-      }}
+      }};
     }
-
 
     macro_rules! call {
       () => {{
@@ -328,7 +371,7 @@ impl CPU {
         mem.ww(self.regs.sp, retaddr);
         self.regs.pc = target;
         3
-      }}
+      }};
     }
     macro_rules! callc {
       ($e:expr) => {{
@@ -338,7 +381,7 @@ impl CPU {
           self.regs.pc += 2;
           3
         }
-      }}
+      }};
     }
 
     macro_rules! rst {
@@ -347,7 +390,7 @@ impl CPU {
         self.push(mem, retaddr);
         self.regs.pc = $e;
         8
-      }}
+      }};
     }
 
     macro_rules! ret {
@@ -355,7 +398,7 @@ impl CPU {
         let retaddr = self.pop(mem);
         self.regs.pc = retaddr;
         4
-      }}
+      }};
     }
     macro_rules! retc {
       ($e:expr) => {{
@@ -364,7 +407,7 @@ impl CPU {
         } else {
           2
         }
-      }}
+      }};
     }
 
     match bump!() {
@@ -376,7 +419,11 @@ impl CPU {
       0x05 => dec!(b),
       0x06 => ld_nn_n!(b),
       0x07 => {
-        let c = if (self.regs.a & 0x80) == 0x80 { 1 } else { 0 };
+        let c = if (self.regs.a & 0x80) == 0x80 {
+          1
+        } else {
+          0
+        };
         let result = (self.regs.a << 1) | c;
         self.regs.f = if c == 1 { reg::C } else { 0 };
         self.regs.a = result;
@@ -412,7 +459,11 @@ impl CPU {
       0x15 => dec!(d),
       0x16 => ld_nn_n!(d),
       0x17 => {
-        let b7 = if (self.regs.a & 0x80) != 0 { 1 } else { 0 };
+        let b7 = if (self.regs.a & 0x80) != 0 {
+          1
+        } else {
+          0
+        };
         let c = if self.regs.c() { 1 } else { 0 };
         self.regs.a = (self.regs.a << 1) | c;
         self.regs.f = if b7 == 1 { reg::C } else { 0 };
@@ -514,8 +565,11 @@ impl CPU {
         let c = if self.regs.c() { reg::C } else { 0 };
         let result = n.wrapping_add(1);
         mem.wb(self.regs.hl(), result);
-        self.regs.f = if result == 0 { reg::Z } else { 0 } |
-          if n & 0xf == 0xf { reg::H } else { 0 } | c;
+        self.regs.f = if result == 0 { reg::Z } else { 0 } | if n & 0xf == 0xf {
+          reg::H
+        } else {
+          0
+        } | c;
         3
       }
       0x35 => {
@@ -524,8 +578,8 @@ impl CPU {
         let c = if self.regs.c() { reg::C } else { 0 };
         let result = n.wrapping_sub(1);
         mem.wb(hl, result);
-        self.regs.f = reg::N | if result == 0 { reg::Z } else { 0 } |
-          if n & 0xf == 0 { reg::H } else { 0 } | c;
+        self.regs.f = reg::N | if result == 0 { reg::Z } else { 0 }
+          | if n & 0xf == 0 { reg::H } else { 0 } | c;
         3
       }
       0x36 => {
@@ -555,8 +609,8 @@ impl CPU {
         2
       }
       0x3f => {
-        self.regs.f = (self.regs.f & reg::Z) |
-          if self.regs.c() { 0 } else { reg::C };
+        self.regs.f =
+          (self.regs.f & reg::Z) | if self.regs.c() { 0 } else { reg::C };
         1
       }
 
@@ -808,8 +862,15 @@ impl CPU {
         // and handle both negative and non-negative cases elegantly.
         // Essentially spooky bit twiddling.
         let tmp = (n as u16) ^ res ^ sp;
-        self.regs.f = if tmp & 0x100 != 0 { reg::C } else { 0 } |
-          if tmp & 0x010 != 0 { reg::H } else { 0 };
+        self.regs.f = if tmp & 0x100 != 0 {
+          reg::C
+        } else {
+          0
+        } | if tmp & 0x010 != 0 {
+          reg::H
+        } else {
+          0
+        };
         self.regs.sp = res;
         4
       }
@@ -870,8 +931,15 @@ impl CPU {
         // and handle both negative and non-negative cases elegantly.
         // Essentially spooky bit twiddling.
         let tmp = (n as u16) ^ res ^ sp;
-        self.regs.f = if tmp & 0x100 != 0 { reg::C } else { 0 } |
-          if tmp & 0x010 != 0 { reg::H } else { 0 };
+        self.regs.f = if tmp & 0x100 != 0 {
+          reg::C
+        } else {
+          0
+        } | if tmp & 0x010 != 0 {
+          reg::H
+        } else {
+          0
+        };
         self.regs.h = (res >> 8) as u8;
         self.regs.l = (res & 0xff) as u8;
         4
@@ -908,7 +976,7 @@ impl CPU {
         let result = mem.rb(self.regs.pc);
         self.regs.pc += 1;
         result
-      }}
+      }};
     }
 
     macro_rules! do_hl {
@@ -917,99 +985,100 @@ impl CPU {
         $stmt;
         mem.wb(self.regs.hl(), $int);
         $time as u32
-      }}
+      }};
     }
 
     macro_rules! rlc {
       ($reg:expr, $time:expr) => {{
         let c = $reg >> 7;
         $reg = ($reg << 1) | c;
-        self.regs.f = if $reg == 0 {reg::Z} else {0} |
-          if c == 1 { reg::C } else { 0 };
+        self.regs.f =
+          if $reg == 0 { reg::Z } else { 0 } | if c == 1 { reg::C } else { 0 };
         $time as u32
-      }}
+      }};
     }
     macro_rules! rl {
       ($reg:expr, $time:expr) => {{
         let b7 = $reg >> 7;
         let c = if self.regs.c() { 1 } else { 0 };
         $reg = ($reg << 1) | c;
-        self.regs.f = if $reg == 0 {reg::Z} else {0} |
-          if b7 == 1 { reg::C } else { 0 };
+        self.regs.f =
+          if $reg == 0 { reg::Z } else { 0 } | if b7 == 1 { reg::C } else { 0 };
         $time as u32
-      }}
+      }};
     }
 
     macro_rules! rrc {
       ($reg:expr, $time:expr) => {{
         let c = $reg & 0x1;
         $reg = ($reg >> 1) | (c << 7);
-        self.regs.f = if $reg == 0 {reg::Z} else {0} |
-          if c == 1 { reg::C } else { 0 };
+        self.regs.f =
+          if $reg == 0 { reg::Z } else { 0 } | if c == 1 { reg::C } else { 0 };
         $time as u32
-      }}
+      }};
     }
     macro_rules! rr {
       ($reg:expr, $time:expr) => {{
         let b0 = $reg & 0x1;
         let c = if self.regs.c() { 1 } else { 0 };
         $reg = ($reg >> 1) | (c << 7);
-        self.regs.f = if $reg == 0 {reg::Z} else {0} |
-          if b0 == 1 { reg::C } else { 0 };
+        self.regs.f =
+          if $reg == 0 { reg::Z } else { 0 } | if b0 == 1 { reg::C } else { 0 };
         $time as u32
-      }}
+      }};
     }
 
     macro_rules! sla {
       ($reg:expr, $time:expr) => {{
         let b7 = $reg >> 7;
         $reg <<= 1;
-        self.regs.f = if $reg == 0 {reg::Z} else {0} |
-          if b7 == 1 { reg::C } else { 0 };
+        self.regs.f =
+          if $reg == 0 { reg::Z } else { 0 } | if b7 == 1 { reg::C } else { 0 };
         $time as u32
-      }}
+      }};
     }
     macro_rules! sra {
       ($reg:expr, $time:expr) => {{
         let b0 = $reg & 0x1;
         // Sign extend.
         $reg = (($reg as i8) >> 1) as u8;
-        self.regs.f = if $reg == 0 {reg::Z} else {0} |
-          if b0 == 1 { reg::C } else { 0 };
+        self.regs.f =
+          if $reg == 0 { reg::Z } else { 0 } | if b0 == 1 { reg::C } else { 0 };
         $time as u32
-      }}
+      }};
     }
     macro_rules! srl {
       ($reg:expr, $time:expr) => {{
         let b0 = $reg & 0x1;
         $reg = ($reg as u8) >> 1;
-        self.regs.f = if $reg == 0 {reg::Z} else {0} |
-          if b0 == 1 { reg::C } else { 0 };
+        self.regs.f =
+          if $reg == 0 { reg::Z } else { 0 } | if b0 == 1 { reg::C } else { 0 };
         $time as u32
-      }}
+      }};
     }
 
     macro_rules! bit {
       ($reg:expr, $b:expr, $time:expr) => {{
         let b = (1 << $b) & $reg;
-        self.regs.f =
-            reg::H
-          | if b == 0 {reg::Z} else {0}
-          | if self.regs.c() {reg::C} else {0};
+        self.regs.f = reg::H | if b == 0 { reg::Z } else { 0 } | if self.regs.c() {
+          reg::C
+        } else {
+          0
+        };
         $time as u32
-      }}
+      }};
     }
     macro_rules! set {
       ($reg:expr, $b:expr, $time:expr) => {{
         $reg = (1 << $b) | $reg;
         $time as u32
-      }}
+      }};
     }
     macro_rules! reset {
       ($reg:expr, $b:expr, $time:expr) => {{
         $reg = !(1 << $b) & $reg;
         $time as u32
-      }}
+      }};
     }
 
     macro_rules! swap {
@@ -1019,9 +1088,9 @@ impl CPU {
         let bot = n & 0xf;
         let result = (bot << 4) | top;
         $reg = result;
-        self.regs.f = if result == 0 {reg::Z} else {0};
+        self.regs.f = if result == 0 { reg::Z } else { 0 };
         $time as u32
-      }}
+      }};
     }
 
     match bump!() {
@@ -1311,8 +1380,7 @@ impl CPU {
     }
     debug!(
       "Handling interrupt: e={} f={}",
-      mem.interrupt_enable,
-      mem.interrupt_flags
+      mem.interrupt_enable, mem.interrupt_flags
     );
 
     self.halt = false;

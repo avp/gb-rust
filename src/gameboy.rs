@@ -80,8 +80,8 @@ impl GameBoy {
 
     while running {
       let clock_speed: f64 = 4.194304e+6 * self.speed.factor();
-      let ticks_per_wait: u32 = (clock_speed / 1000.0 * MS_PER_WAIT as f64) as
-        u32;
+      let ticks_per_wait: u32 =
+        (clock_speed / 1000.0 * MS_PER_WAIT as f64) as u32;
 
       // Wait a bit to catch up.
       if limit_speed {
@@ -100,9 +100,10 @@ impl GameBoy {
 
         if ints & 0b00001 != 0 {
           display.redraw(self.mem.frame());
-          display.events_loop.poll_events(|event| match event {
-            glutin::Event::WindowEvent { event, .. } => {
-              match event {
+          display
+            .events_loop
+            .poll_events(|event| match event {
+              glutin::Event::WindowEvent { event, .. } => match event {
                 glutin::WindowEvent::Closed => {
                   running = false;
                 }
@@ -110,13 +111,11 @@ impl GameBoy {
                   self.handle_key(input);
                 }
                 _ => (),
-              }
-            }
-            _ => (),
-          });
+              },
+              _ => (),
+            });
         }
       }
-
     }
     Ok(())
   }

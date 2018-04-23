@@ -44,7 +44,7 @@ fn ld_nn_n() {
       run(&mut cpu, &mut mem, $opcode, 2, 2);
       assert_eq!(cpu.regs.f, f);
       assert_eq!(cpu.regs.$reg, 0x42);
-    }}
+    }};
   }
   run_test!(b, 0x06);
   run_test!(c, 0x0e);
@@ -57,16 +57,16 @@ fn ld_nn_n() {
 #[test]
 fn ld_r1_r2() {
   macro_rules! reg_reg {
-      ($r1:ident, $r2:ident, $opcode:expr) => {{
-        let (mut cpu, mut mem) = init();
-        cpu.regs.$r2 = 0x42;
-        let f = cpu.regs.f;
-        run(&mut cpu, &mut mem, $opcode, 1, 1);
-        assert_eq!(cpu.regs.f, f);
-        assert_eq!(cpu.regs.$r1, 0x42);
-        assert_eq!(cpu.regs.$r2, 0x42);
-      }}
-    }
+    ($r1:ident, $r2:ident, $opcode:expr) => {{
+      let (mut cpu, mut mem) = init();
+      cpu.regs.$r2 = 0x42;
+      let f = cpu.regs.f;
+      run(&mut cpu, &mut mem, $opcode, 1, 1);
+      assert_eq!(cpu.regs.f, f);
+      assert_eq!(cpu.regs.$r1, 0x42);
+      assert_eq!(cpu.regs.$r2, 0x42);
+    }};
+  }
 
   reg_reg!(a, a, 0x7f);
   reg_reg!(a, b, 0x78);

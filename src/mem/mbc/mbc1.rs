@@ -65,20 +65,17 @@ impl MBC for MBC1 {
     match addr >> 12 {
       0x0...0x1 => self.ram_on = (value & 0x0f) == 0x0a,
       0x2...0x3 => {
-        self.rom_bank = (self.rom_bank & 0x60) +
-          match value & 0x1f {
-            0 => 1,
-            v => v,
-          }
-      }
-      0x4...0x5 => {
-        match self.mode {
-          Mode::RAM => self.ram_bank = value & 0x03,
-          Mode::ROM => {
-            self.rom_bank = (self.rom_bank & 0x1f) + ((value & 0x03) << 5)
-          }
+        self.rom_bank = (self.rom_bank & 0x60) + match value & 0x1f {
+          0 => 1,
+          v => v,
         }
       }
+      0x4...0x5 => match self.mode {
+        Mode::RAM => self.ram_bank = value & 0x03,
+        Mode::ROM => {
+          self.rom_bank = (self.rom_bank & 0x1f) + ((value & 0x03) << 5)
+        }
+      },
       0x6...0x7 => {
         self.mode = if value & 0x1 == 0x0 {
           Mode::ROM

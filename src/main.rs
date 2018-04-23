@@ -18,10 +18,10 @@ use std::path::PathBuf;
 use std::process;
 
 mod cpu;
-mod mem;
+mod display;
 mod gameboy;
 mod gpu;
-mod display;
+mod mem;
 
 #[derive(Debug)]
 struct Args {

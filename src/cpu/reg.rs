@@ -51,7 +51,6 @@ impl Registers {
     self.l = self.l.wrapping_sub(1);
   }
 
-
   pub fn z(&self) -> bool {
     //! Zero flag
     self.f & Z != 0
