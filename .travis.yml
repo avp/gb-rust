@@ -3,7 +3,6 @@ os:
   - linux
 rust:
   - stable
-  - beta
 cache: cargo
 before_script:
   - export PATH="$PATH:$HOME/.cargo/bin"
