@@ -75,7 +75,7 @@ impl fmt::Display for CartridgeType {
 impl CartridgeType {
   fn has_battery(&self) -> bool {
     match *self {
-      CartridgeType::MBC1BatteryRAM => true,
+      CartridgeType::MBC1BatteryRAM | CartridgeType::MBC3BatteryRAM => true,
       _ => false,
     }
   }
@@ -143,8 +143,11 @@ fn ram_size(v: u8) -> Result<usize, LoadError> {
 const SAV_EXTENSION: &'static str = "sav";
 
 fn read_save(filename: &PathBuf) -> Option<Vec<u8>> {
-  let mut savefile: Option<Vec<u8>> = None;
   let savepath = filename.with_extension(SAV_EXTENSION);
+  println!(
+    "Looking for save: {}",
+    savepath.to_str().unwrap()
+  );
   if savepath.is_file() {
     // Load from save file.
     if let Ok(mut f) = File::open(&savepath) {
@@ -155,7 +158,7 @@ fn read_save(filename: &PathBuf) -> Option<Vec<u8>> {
       let mut buf = vec![];
       match f.read_to_end(&mut buf) {
         Ok(_) => {
-          savefile = Some(buf);
+          return Some(buf);
         }
         Err(_) => {
           eprintln!(
@@ -166,7 +169,7 @@ fn read_save(filename: &PathBuf) -> Option<Vec<u8>> {
       };
     }
   }
-  savefile
+  None
 }
 
 impl Memory {
