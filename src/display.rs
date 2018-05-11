@@ -33,9 +33,7 @@ impl Display {
       w,
       h,
     ).unwrap();
-    dest_texture
-      .as_surface()
-      .clear_color(0.0, 0.0, 0.0, 1.0);
+    dest_texture.as_surface().clear_color(0.0, 0.0, 0.0, 1.0);
 
     let mut target = display.draw();
     target.clear_color(0.0, 0.0, 0.0, 1.0);

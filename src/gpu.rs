@@ -225,15 +225,8 @@ impl GPU {
     for col in 0..8 {
       let sx: u8 = 1 << (7 - col);
 
-      let color = if self.vram[addr] & sx != 0 {
-        1
-      } else {
-        0
-      } + if self.vram[addr + 1] & sx != 0 {
-        2
-      } else {
-        0
-      };
+      let color = if self.vram[addr] & sx != 0 { 1 } else { 0 } +
+        if self.vram[addr + 1] & sx != 0 { 2 } else { 0 };
       self.tileset[tile][row][col] = color;
     }
   }
@@ -260,32 +253,23 @@ impl GPU {
   pub fn rb(&self, addr: u16) -> u8 {
     match addr {
       0xff40 => {
-        (if self.switchbg { 0x01 } else { 0 }) | (if self.switchobj {
-          0x02
-        } else {
-          0
-        }) | (if self.objsize { 0x04 } else { 0 }) | (if self.bgmap {
-          0x08
-        } else {
-          0
-        }) | (if self.bgtile { 0x10 } else { 0 }) | (if self.switchwin {
-          0x20
-        } else {
-          0
-        }) | (if self.winmap { 0x40 } else { 0 }) | (if self.switchlcd {
-          0x80
-        } else {
-          0
-        })
+        (if self.switchbg { 0x01 } else { 0 }) |
+          (if self.switchobj { 0x02 } else { 0 }) |
+          (if self.objsize { 0x04 } else { 0 }) |
+          (if self.bgmap { 0x08 } else { 0 }) |
+          (if self.bgtile { 0x10 } else { 0 }) |
+          (if self.switchwin { 0x20 } else { 0 }) |
+          (if self.winmap { 0x40 } else { 0 }) |
+          (if self.switchlcd { 0x80 } else { 0 })
       }
       0xff41 => {
-        ((self.lycly as u8) << 6) | ((self.mode2int as u8) << 5)
-          | ((self.mode1int as u8) << 4) | ((self.mode0int as u8) << 3)
-          | (if self.lyc as usize == self.line {
-            1 << 2
-          } else {
-            0
-          }) | (self.mode as u8)
+        ((self.lycly as u8) << 6) | ((self.mode2int as u8) << 5) |
+          ((self.mode1int as u8) << 4) | ((self.mode0int as u8) << 3) |
+          (if self.lyc as usize == self.line {
+             1 << 2
+           } else {
+             0
+           }) | (self.mode as u8)
       }
       0xff42 => self.scy,
       0xff43 => self.scx,
@@ -370,8 +354,8 @@ impl GPU {
     // Confine it to the 256 possible tiles to ensure wraparound,
     // divide by 8 pixels per tile,
     // and multiply by TILEMAP_WIDTH tiles in each previous row of the map.
-    let map_row_offset = map_base
-      + ((((self.line + self.scy as usize) % 256) / 8) * TILEMAP_WIDTH);
+    let map_row_offset = map_base +
+      ((((self.line + self.scy as usize) % 256) / 8) * TILEMAP_WIDTH);
 
     // Add to that the horizontal offset (just offset / 8 pixels per tile).
     let mut map_col_offset = ((self.scx / 8) as usize % TILEMAP_WIDTH) as usize;
@@ -416,11 +400,7 @@ impl GPU {
     let row = (self.line - self.winy as usize) % 8;
     let mut col = (winx % 8) as usize;
 
-    let map_base = if self.winmap {
-      0x1c00
-    } else {
-      0x1800
-    };
+    let map_base = if self.winmap { 0x1c00 } else { 0x1800 };
 
     // Current screen line number + vertical scroll offset
     // is the line of the bg.
@@ -464,10 +444,7 @@ impl GPU {
 
       let object = self.objects[i];
       if object.y <= line && line < (object.y + ysize) {
-        debug!(
-          "Rendering object {} at line={} {:?}",
-          i, self.line, object
-        );
+        debug!("Rendering object {} at line={} {:?}", i, self.line, object);
         let pal = if object.palette {
           self.obj1_palette
         } else {
