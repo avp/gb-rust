@@ -980,7 +980,7 @@ impl CPU {
     }
 
     macro_rules! do_hl {
-      ($int:ident, $stmt:stmt, $time:expr) => {{
+      ($int:ident, $stmt:expr, $time:expr) => {{
         let mut $int = mem.rb(self.regs.hl());
         $stmt;
         mem.wb(self.regs.hl(), $int);
