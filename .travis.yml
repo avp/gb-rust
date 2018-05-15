@@ -9,6 +9,5 @@ before_script:
   - rustup install nightly
   - cargo +nightly install --force rustfmt-nightly
 script:
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then cargo +nightly fmt -- --write-mode=diff; fi
   - cargo build
   - cargo test
