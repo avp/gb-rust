@@ -44,7 +44,11 @@ impl CPU {
       self.regs.hl(),
       mem.rb(0xa100),
     );
-    let m = if self.halt { 1 } else { self.exec(mem) };
+    let m = if self.halt {
+      1
+    } else {
+      self.exec(mem)
+    };
     self.regs.m = m;
     self.regs.t = 4 * m;
     self.m += self.regs.m;
@@ -415,7 +419,11 @@ impl CPU {
       0x05 => dec!(b),
       0x06 => ld_nn_n!(b),
       0x07 => {
-        let c = if (self.regs.a & 0x80) == 0x80 { 1 } else { 0 };
+        let c = if (self.regs.a & 0x80) == 0x80 {
+          1
+        } else {
+          0
+        };
         let result = (self.regs.a << 1) | c;
         self.regs.f = if c == 1 { reg::C } else { 0 };
         self.regs.a = result;
@@ -451,7 +459,11 @@ impl CPU {
       0x15 => dec!(d),
       0x16 => ld_nn_n!(d),
       0x17 => {
-        let b7 = if (self.regs.a & 0x80) != 0 { 1 } else { 0 };
+        let b7 = if (self.regs.a & 0x80) != 0 {
+          1
+        } else {
+          0
+        };
         let c = if self.regs.c() { 1 } else { 0 };
         self.regs.a = (self.regs.a << 1) | c;
         self.regs.f = if b7 == 1 { reg::C } else { 0 };
@@ -553,8 +565,11 @@ impl CPU {
         let c = if self.regs.c() { reg::C } else { 0 };
         let result = n.wrapping_add(1);
         mem.wb(self.regs.hl(), result);
-        self.regs.f = if result == 0 { reg::Z } else { 0 } |
-          if n & 0xf == 0xf { reg::H } else { 0 } | c;
+        self.regs.f = if result == 0 { reg::Z } else { 0 } | if n & 0xf == 0xf {
+          reg::H
+        } else {
+          0
+        } | c;
         3
       }
       0x35 => {
@@ -563,8 +578,8 @@ impl CPU {
         let c = if self.regs.c() { reg::C } else { 0 };
         let result = n.wrapping_sub(1);
         mem.wb(hl, result);
-        self.regs.f = reg::N | if result == 0 { reg::Z } else { 0 } |
-          if n & 0xf == 0 { reg::H } else { 0 } | c;
+        self.regs.f = reg::N | if result == 0 { reg::Z } else { 0 }
+          | if n & 0xf == 0 { reg::H } else { 0 } | c;
         3
       }
       0x36 => {
@@ -594,8 +609,8 @@ impl CPU {
         2
       }
       0x3f => {
-        self.regs.f = (self.regs.f & reg::Z) |
-          if self.regs.c() { 0 } else { reg::C };
+        self.regs.f =
+          (self.regs.f & reg::Z) | if self.regs.c() { 0 } else { reg::C };
         1
       }
 
@@ -847,8 +862,15 @@ impl CPU {
         // and handle both negative and non-negative cases elegantly.
         // Essentially spooky bit twiddling.
         let tmp = (n as u16) ^ res ^ sp;
-        self.regs.f = if tmp & 0x100 != 0 { reg::C } else { 0 } |
-          if tmp & 0x010 != 0 { reg::H } else { 0 };
+        self.regs.f = if tmp & 0x100 != 0 {
+          reg::C
+        } else {
+          0
+        } | if tmp & 0x010 != 0 {
+          reg::H
+        } else {
+          0
+        };
         self.regs.sp = res;
         4
       }
@@ -909,8 +931,15 @@ impl CPU {
         // and handle both negative and non-negative cases elegantly.
         // Essentially spooky bit twiddling.
         let tmp = (n as u16) ^ res ^ sp;
-        self.regs.f = if tmp & 0x100 != 0 { reg::C } else { 0 } |
-          if tmp & 0x010 != 0 { reg::H } else { 0 };
+        self.regs.f = if tmp & 0x100 != 0 {
+          reg::C
+        } else {
+          0
+        } | if tmp & 0x010 != 0 {
+          reg::H
+        } else {
+          0
+        };
         self.regs.h = (res >> 8) as u8;
         self.regs.l = (res & 0xff) as u8;
         4
@@ -1031,8 +1060,8 @@ impl CPU {
     macro_rules! bit {
       ($reg:expr, $b:expr, $time:expr) => {{
         let b = (1 << $b) & $reg;
-        self.regs.f = reg::H ;
-        self.regs.f |= if b == 0 { reg::Z } else { 0 } ;
+        self.regs.f = reg::H;
+        self.regs.f |= if b == 0 { reg::Z } else { 0 };
         self.regs.f |= if self.regs.c() { reg::C } else { 0 };
         $time as u32
       }};
@@ -1349,8 +1378,7 @@ impl CPU {
     }
     debug!(
       "Handling interrupt: e={} f={}",
-      mem.interrupt_enable,
-      mem.interrupt_flags
+      mem.interrupt_enable, mem.interrupt_flags
     );
 
     self.halt = false;

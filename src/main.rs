@@ -48,7 +48,7 @@ fn main_result() -> Result<(), Box<Error>> {
 
   let mut gb = gameboy::GameBoy::new(rom, args.rom)?;
   println!("Starting game: {}", gb.title);
-  gb.run(&mut display::Display::new(), !args.test)?;
+  gb.run(&mut display::Display::new(), !args.test);
   println!("Thanks for playing!");
   Ok(())
 }

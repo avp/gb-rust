@@ -2,6 +2,7 @@ use cpu::CPU;
 use display::Display;
 use glium::glutin;
 use mem::Key;
+use mem::LoadError;
 use mem::Memory;
 
 use std::error::Error;
@@ -58,7 +59,7 @@ impl Error for RunError {
 }
 
 impl GameBoy {
-  pub fn new(rom: Vec<u8>, filename: PathBuf) -> Result<GameBoy, Box<Error>> {
+  pub fn new(rom: Vec<u8>, filename: PathBuf) -> Result<GameBoy, LoadError> {
     let title =
       String::from_utf8(rom[0x134..0x144].to_vec()).unwrap_or(String::new());
     Ok(GameBoy {
@@ -69,23 +70,19 @@ impl GameBoy {
     })
   }
 
-  pub fn run(
-    &mut self,
-    display: &mut Display,
-    limit_speed: bool,
-  ) -> Result<(), Box<Error>> {
+  pub fn run(&mut self, display: &mut Display, limit_speed: bool) {
     let mut running = true;
 
     let ticker = self.wait_timer(MS_PER_WAIT);
 
     while running {
       let clock_speed: f64 = 4.194304e+6 * self.speed.factor();
-      let ticks_per_wait: u32 = (clock_speed / 1000.0 * MS_PER_WAIT as f64) as
-        u32;
+      let ticks_per_wait: u32 =
+        (clock_speed / 1000.0 * MS_PER_WAIT as f64) as u32;
 
       // Wait a bit to catch up.
       if limit_speed {
-        ticker.recv()?;
+        ticker.recv().unwrap();
       }
 
       let mut total = 0;
@@ -100,9 +97,10 @@ impl GameBoy {
 
         if ints & 0b00001 != 0 {
           display.redraw(self.mem.frame());
-          display.events_loop.poll_events(|event| match event {
-            glutin::Event::WindowEvent { event, .. } => {
-              match event {
+          display
+            .events_loop
+            .poll_events(|event| match event {
+              glutin::Event::WindowEvent { event, .. } => match event {
                 glutin::WindowEvent::Closed => {
                   running = false;
                 }
@@ -110,14 +108,12 @@ impl GameBoy {
                   self.handle_key(input);
                 }
                 _ => (),
-              }
-            }
-            _ => (),
-          });
+              },
+              _ => (),
+            });
         }
       }
     }
-    Ok(())
   }
 
   fn handle_key(&mut self, key_input: glutin::KeyboardInput) {
