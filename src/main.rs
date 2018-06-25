@@ -6,6 +6,11 @@ use clap::{App, Arg};
 extern crate log;
 extern crate env_logger;
 
+extern crate portaudio;
+extern crate synth;
+
+use portaudio as pa;
+
 use std::error::Error;
 use std::fs::File;
 use std::io;
@@ -13,6 +18,7 @@ use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::process;
 
+mod audio;
 mod cpu;
 mod display;
 mod gameboy;

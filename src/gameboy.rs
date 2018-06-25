@@ -1,3 +1,4 @@
+use crate::audio::Audio;
 use crate::cpu::CPU;
 use crate::display::Display;
 use crate::mem::Key;
@@ -33,6 +34,7 @@ const MS_PER_WAIT: u32 = 16;
 pub struct GameBoy {
   cpu: CPU,
   mem: Memory,
+  audio: Audio,
 
   pub speed: Speed,
   pub title: String,
@@ -72,6 +74,7 @@ impl GameBoy {
       title,
       cpu: CPU::new(),
       mem: Memory::new(rom, filename)?,
+      audio: Audio::new().expect("Could not initialize audio"),
       speed: Speed::Normal,
     })
   }
