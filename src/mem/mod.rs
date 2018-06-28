@@ -7,6 +7,7 @@ mod timer;
 pub use self::key::Key;
 
 use self::key::KeyData;
+use crate::apu;
 use crate::gpu;
 
 use self::mbc::{MBC, MBC0, MBC1, MBC3};
@@ -39,6 +40,7 @@ pub struct Memory {
 
   gpu: gpu::GPU,
   timer: timer::Timer,
+  apu: apu::APU,
 
   savepath: PathBuf,
 }
@@ -227,6 +229,7 @@ impl Memory {
 
       gpu: gpu::GPU::new(),
       timer: timer::Timer::new(),
+      apu: apu::APU::new(),
 
       savepath: filename.with_extension(SAV_EXTENSION),
     };
@@ -325,6 +328,8 @@ impl Memory {
                 0x4..=0x7 => self.gpu.rb(addr),
                 _ => 0,
               }
+            } else if addr >= 0xff10 {
+              self.apu.rb(addr)
             } else {
               match addr & 0x3f {
                 0x00 => self.key.rb(),

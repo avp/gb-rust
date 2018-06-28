@@ -2,19 +2,19 @@ use portaudio as pa;
 
 use std::f64::consts::PI;
 
-pub struct Audio {
+pub struct Speaker {
   // Output stream.
   stream: pa::Stream<pa::NonBlocking, pa::Output<f32>>,
 }
 
-impl Drop for Audio {
+impl Drop for Speaker {
   fn drop(&mut self) {
     self.stream.close().expect("failed to close stream");
   }
 }
 
-impl Audio {
-  pub fn new() -> Result<Audio, pa::Error> {
+impl Speaker {
+  pub fn new() -> Result<Speaker, pa::Error> {
     const CHANNELS: i32 = 2;
     const NUM_SECONDS: i32 = 5;
     const SAMPLE_RATE: f64 = 44_100.0;
@@ -38,9 +38,9 @@ impl Audio {
     // we won't output out of range samples so don't bother clipping them.
     settings.flags = pa::stream_flags::CLIP_OFF;
 
-    // This routine will be called by the PortAudio engine when audio is needed. It may called at
-    // interrupt level on some machines so don't do anything that could mess up the system like
-    // dynamic resource allocation or IO.
+    // This routine will be called by the PortAudio engine when audio is needed.
+    // It may called at interrupt level on some machines so don't do anything
+    // that could mess up the system like dynamic resource allocation or IO.
     let callback =
       move |pa::OutputStreamCallbackArgs { buffer, frames, .. }| {
         let mut idx = 0;
@@ -61,8 +61,8 @@ impl Audio {
       };
 
     let stream = pa.open_non_blocking_stream(settings, callback)?;
-    let audio = Audio { stream: stream };
-    Ok(audio)
+    let speaker = Speaker { stream: stream };
+    Ok(speaker)
   }
 
   fn start(&mut self) -> Result<(), pa::Error> {

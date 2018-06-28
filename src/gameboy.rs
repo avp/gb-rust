@@ -1,9 +1,9 @@
-use crate::audio::Audio;
 use crate::cpu::CPU;
 use crate::display::Display;
 use crate::mem::Key;
 use crate::mem::LoadError;
 use crate::mem::Memory;
+use crate::speaker::Speaker;
 
 use std::error::Error;
 use std::fmt;
