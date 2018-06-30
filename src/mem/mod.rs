@@ -413,7 +413,7 @@ impl Memory {
                 self.gpu.wb(addr, value);
               }
             } else if addr >= 0xff10 {
-              self.wb(addr, value);
+              self.apu.wb(addr, value);
             } else {
               match addr & 0x3f {
                 0x00 => self.key.wb(value),

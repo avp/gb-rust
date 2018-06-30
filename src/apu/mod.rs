@@ -115,7 +115,7 @@ impl APU {
   pub fn rb(&self, addr: u16) -> u8 {
     match addr {
       0xff10...0xff14 => self.channel1.rb(addr - 0xff10),
-      0xff20...0xff24 => self.channel2.rb(addr - 0xff10),
+      0xff20...0xff24 => self.channel2.rb(addr - 0xff20),
       _ => 0,
     }
   }
@@ -123,7 +123,7 @@ impl APU {
   pub fn wb(&mut self, addr: u16, val: u8) {
     match addr {
       0xff10...0xff14 => self.channel1.wb(addr - 0xff10, val),
-      0xff20...0xff24 => self.channel2.wb(addr - 0xff10, val),
+      0xff20...0xff24 => self.channel2.wb(addr - 0xff20, val),
       _ => (),
     }
   }
