@@ -412,6 +412,8 @@ impl Memory {
               if matches!((addr >> 4) & 0xf, 0x4..=0x7) {
                 self.gpu.wb(addr, value);
               }
+            } else if addr >= 0xff10 {
+              self.wb(addr, value);
             } else {
               match addr & 0x3f {
                 0x00 => self.key.wb(value),
