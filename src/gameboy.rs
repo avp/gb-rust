@@ -79,7 +79,14 @@ impl GameBoy {
     })
   }
 
-  pub fn run(mut self, mut display: Display, limit_speed: bool) {
+  pub fn run(
+    &mut self,
+    display: Display,
+    speaker: &mut Speaker,
+    limit_speed: bool,
+  ) {
+    let mut running = true;
+
     let ticker = self.wait_timer(MS_PER_WAIT);
 
     while display.display.is_open() {
@@ -89,6 +96,7 @@ impl GameBoy {
 
       // Wait a bit to catch up.
       if limit_speed {
+        speaker.play(self.mem.dump_audio());
         ticker.recv().unwrap();
       }
 

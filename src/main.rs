@@ -49,7 +49,10 @@ fn main_result() -> Result<(), Box<dyn Error>> {
 
   let gb = gameboy::GameBoy::new(rom, args.rom)?;
   println!("Starting game: {}", gb.title);
-  gb.run(display::Display::new()?, !args.test);
+
+  let display = display::Display::new();
+  let mut speaker = speaker::Speaker::new()?;
+  gb.run(display, &mut speaker, !args.test);
   println!("Thanks for playing!");
   Ok(())
 }

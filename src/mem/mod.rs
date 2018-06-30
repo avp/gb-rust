@@ -291,6 +291,11 @@ impl Memory {
     &self.gpu.frame
   }
 
+  /// Dump the audio from the APU.
+  pub fn dump_audio(&mut self) -> Vec<(i8, i8)> {
+    self.apu.dump()
+  }
+
   /// Read a byte at address `addr`.
   pub fn rb(&self, addr: u16) -> u8 {
     match addr >> 12 {
