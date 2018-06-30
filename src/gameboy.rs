@@ -89,6 +89,8 @@ impl GameBoy {
 
     let ticker = self.wait_timer(MS_PER_WAIT);
 
+    speaker.start().expect("Unable to start speakers");
+
     while display.display.is_open() {
       let clock_speed: f64 = 4.194304e+6 * self.speed.factor();
       let ticks_per_wait: u32 =

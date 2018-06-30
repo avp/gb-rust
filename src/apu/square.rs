@@ -13,6 +13,10 @@ pub struct Square {
   frequency: u16,       // Actual frequency: 131072/(2048-x) Hz.
   length_enabled: bool, // If true, stop output when length expires.
   triggered: bool,
+
+  duty: u8, // Actual duty at current step, refreshed on trigger.
+  period_count: u32, // Period count, starts at 2048 - frequency.
+  enabled: bool, // Square wave volume enabled?
 }
 
 impl Square {
@@ -32,6 +36,10 @@ impl Square {
       frequency: 0,
       length_enabled: false,
       triggered: false,
+
+      duty: get_duty(0),
+      period_count: 2048,
+      enabled: false,
     }
   }
 
@@ -69,6 +77,7 @@ impl Square {
       }
       1 => {
         self.length = 64 - (val & 0x3f);
+        self.duty_number = val >> 6;
       }
       2 => {
         self.env_volume = (val >> 4) & 0x7;
@@ -76,31 +85,79 @@ impl Square {
         self.env_sweep = val & 0x7;
       }
       3 => {
-        self.frequency = (self.frequency & !0xff) | (val as u16);
+        self.frequency = (self.frequency & !0xffu16) | (val as u16);
+        info!("FREQ={}", self.frequency);
       }
       4 => {
-        self.frequency = (self.frequency & 0xff) | ((val as u16 & 0x7) << 8);
+        self.frequency = (self.frequency & 0xffu16) | ((val as u16 & 0x7) << 8);
         self.length_enabled = val & 0x40 != 0;
         self.triggered = val & 0x80 != 0;
+        if val & 0x80 != 0 {
+          // eprintln!("TRIGGERED");
+        }
+        info!("freq={}", self.frequency);
       }
       _ => unreachable!(),
     }
   }
 
-  pub fn step(&mut self, _idx: u32) {}
-
-  pub fn next(&self) -> i8 {
-    0
+  /// Tick the internal frame sequencer by the 3-bit value `idx`.
+  pub fn step(&mut self, idx: u32) {
+    if idx & 1 == 0 && self.length_enabled && self.length > 0 {
+      self.length -= 1;
+      if self.length == 0 {
+        self.enabled = false;
+      }
+    }
   }
 
-  /// Get the actual 8-bit duty given the duty number.
-  fn duty(&self) -> u8 {
-    match self.duty_number & 0b11 {
-      0b00 => 0b00000001,
-      0b01 => 0b10000001,
-      0b10 => 0b10000111,
-      0b11 => 0b01111110,
-      _ => unreachable!(),
+  fn reset_period(&mut self) {
+    self.period_count = (2048 - (self.frequency as u32)) * 4;
+  }
+
+  pub fn next(&mut self) -> i8 {
+    if self.triggered {
+      self.duty = get_duty(self.duty_number);
+      self.reset_period();
+      self.triggered = false;
+      self.enabled = true;
+      self.length = 64;
     }
+
+    if !self.enabled {
+      return 0;
+    }
+
+    if self.period_count == 0 {
+      self.reset_period();
+      self.duty = self.duty.rotate_left(1);
+    }
+    // eprintln!("duty=0b{:08b}", self.duty);
+
+    eprintln!("volume={}", self.env_volume);
+    eprintln!("env_sweep={}", self.env_sweep);
+    let volume: i8 = 100;
+
+    let result = if self.duty & 0x80 != 0 {
+      volume
+    } else {
+      -volume
+    };
+
+    info!("period count = {}", self.period_count);
+    self.period_count -= 1;
+
+    result
+  }
+}
+
+/// Get the actual 8-bit duty given the duty number.
+fn get_duty(duty_number: u8) -> u8 {
+  match duty_number & 0b11 {
+    0b00 => 0b00000001,
+    0b01 => 0b10000001,
+    0b10 => 0b10000111,
+    0b11 => 0b01111110,
+    _ => unreachable!(),
   }
 }

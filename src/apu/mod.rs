@@ -57,7 +57,7 @@ impl APU {
       self.channel2.step(idx);
     }
 
-    self.counter += t;
+    self.counter = self.counter.wrapping_add(t);
 
     let (s1, s2) = (self.channel1.next(), self.channel2.next());
     let ss = self.sound_select;
@@ -68,6 +68,11 @@ impl APU {
       if ss & 0x10 != 0 { s1 } else { 0 } + if ss & 0x20 != 0 { s2 } else { 0 };
 
     self.buf.push((c1, c2));
+  }
+
+  /// Return the length of the APU buffer so far.
+  pub fn buflen(&mut self) -> usize {
+    self.buf.len()
   }
 
   /// Dump the APU buffer to the caller. Clears the buffer.

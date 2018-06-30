@@ -278,6 +278,7 @@ impl Memory {
   pub fn step(&mut self, t: u32) -> u8 {
     let mut int = 0;
     int |= self.gpu.step(t);
+    self.apu.step(t);
 
     let m = if t == 0 { 1 } else { t / 4 };
     if self.timer.inc(m) {
@@ -294,6 +295,11 @@ impl Memory {
   /// Dump the audio from the APU.
   pub fn dump_audio(&mut self) -> Vec<(i8, i8)> {
     self.apu.dump()
+  }
+
+  /// Dump the audio from the APU.
+  pub fn audio_len(&mut self) -> usize {
+    self.apu.buflen()
   }
 
   /// Read a byte at address `addr`.

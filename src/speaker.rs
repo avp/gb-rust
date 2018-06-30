@@ -16,18 +16,16 @@ impl Drop for Speaker {
   }
 }
 
+const CHANNELS: i32 = 2;
+const SAMPLE_RATE: f64 = 84_100.0;
+pub const FRAMES_PER_BUFFER: u32 = 128;
+
 fn normalize_sample(s: i8) -> f32 {
   (s as f32) * (1.0 / 127.0)
 }
 
 impl Speaker {
   pub fn new() -> Result<Speaker, pa::Error> {
-    const CHANNELS: i32 = 2;
-    const NUM_SECONDS: i32 = 5;
-    const SAMPLE_RATE: f64 = 44_100.0;
-    const FRAMES_PER_BUFFER: u32 = 64;
-    const TABLE_SIZE: usize = 200;
-
     let pa = pa::PortAudio::new()?;
 
     let (sound_send, sound_recv) = mpsc::channel();
@@ -39,6 +37,17 @@ impl Speaker {
     )?;
     // We won't output out of range samples so don't bother clipping them.
     settings.flags = pa::stream_flags::CLIP_OFF;
+
+    let mut square = [0.0; 200];
+    for i in 0..200 {
+      if (i / 50) % 2 == 0 {
+        square[i] = 0.8;
+      } else {
+        square[i] = -0.7;
+      }
+      // square[i] = (i as f64 / 200 as f64 * 3.14 * 2.0).sin() as f32;
+    }
+    let mut phase = 0;
 
     // This routine will be called by the PortAudio engine when audio is needed.
     // It may called at interrupt level on some machines so don't do anything
@@ -58,26 +67,40 @@ impl Speaker {
               buffer, frames, ..
             }| {
         let mut queue = VecDeque::new();
-        match sound_recv.try_recv() {
-          Ok(b) => {
-            for (c1, c2) in b {
-              queue.push_back((normalize_sample(c1), normalize_sample(c2)));
+        loop {
+          match sound_recv.try_recv() {
+            Ok(b) => {
+              for (c1, c2) in b {
+                queue.push_back((normalize_sample(c1), normalize_sample(c2)));
+              }
             }
+<<<<<<< HEAD
 >>>>>>> [APU] Skeleton for playing music.
+=======
+            Err(mpsc::TryRecvError::Empty) => break,
+            Err(mpsc::TryRecvError::Disconnected) => unreachable!(),
+>>>>>>> Debugging.
           }
-          Err(_) => {}
         }
+        // eprintln!("queuelen={}", queue.len());
         for i in 0..frames {
-          match queue.pop_front() {
-            Some((c1, c2)) => {
-              buffer[i * 2] = c1;
-              buffer[i * 2 + 1] = c2;
-            }
-            None => {
-              buffer[i * 2] = 0.0;
-              buffer[i * 2 + 1] = 0.0;
-            }
+          buffer[i * 2] = square[phase];
+          buffer[i * 2 + 1] = square[phase];
+          phase += 1;
+          if phase >= 200 {
+            phase = 0;
           }
+          // match queue.pop_front() {
+          //   Some((c1, c2)) => {
+          //     eprintln!("{:?}", (c1, c2));
+          //     buffer[i * 2] = c1;
+          //     buffer[i * 2 + 1] = c2;
+          //   }
+          //   None => {
+          //     buffer[i * 2] = 0.0;
+          //     buffer[i * 2 + 1] = 0.0;
+          //   }
+          // }
         }
         pa::Continue
       };
@@ -97,7 +120,7 @@ impl Speaker {
       .expect("Sound receiver closed");
   }
 
-  fn start(&mut self) -> Result<(), pa::Error> {
+  pub fn start(&mut self) -> Result<(), pa::Error> {
     self.stream.start()
   }
 }
