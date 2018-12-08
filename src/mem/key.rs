@@ -1,4 +1,4 @@
-use glutin::VirtualKeyCode;
+use glium::glutin::VirtualKeyCode;
 
 #[derive(Debug)]
 pub enum Key {

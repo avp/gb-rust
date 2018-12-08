@@ -1,4 +1,4 @@
-use mem::mbc::MBC;
+use crate::mem::mbc::MBC;
 
 #[derive(Debug)]
 pub struct MBC1 {
@@ -54,36 +54,36 @@ impl MBC1 {
 impl MBC for MBC1 {
   fn rb(&self, addr: u16) -> u8 {
     match addr >> 12 {
-      0x0...0x3 => self.rom[addr as usize],
-      0x4...0x7 => self.rom[self.rom_offset() + (addr & 0x3fff) as usize],
-      0xa...0xb => self.ram[self.ram_offset() + (addr & 0x1fff) as usize],
+      0x0..=0x3 => self.rom[addr as usize],
+      0x4..=0x7 => self.rom[self.rom_offset() + (addr & 0x3fff) as usize],
+      0xa..=0xb => self.ram[self.ram_offset() + (addr & 0x1fff) as usize],
       _ => panic!("Invalid address to MBC: {}", addr),
     }
   }
 
   fn wb(&mut self, addr: u16, value: u8) {
     match addr >> 12 {
-      0x0...0x1 => self.ram_on = (value & 0x0f) == 0x0a,
-      0x2...0x3 => {
+      0x0..=0x1 => self.ram_on = (value & 0x0f) == 0x0a,
+      0x2..=0x3 => {
         self.rom_bank = (self.rom_bank & 0x60) + match value & 0x1f {
           0 => 1,
           v => v,
         }
       }
-      0x4...0x5 => match self.mode {
+      0x4..=0x5 => match self.mode {
         Mode::RAM => self.ram_bank = value & 0x03,
         Mode::ROM => {
           self.rom_bank = (self.rom_bank & 0x1f) + ((value & 0x03) << 5)
         }
       },
-      0x6...0x7 => {
+      0x6..=0x7 => {
         self.mode = if value & 0x1 == 0x0 {
           Mode::ROM
         } else {
           Mode::RAM
         };
       }
-      0xa...0xb => {
+      0xa..=0xb => {
         let offset = self.ram_offset();
         self.ram[offset + (addr & 0x1fff) as usize] = value
       }

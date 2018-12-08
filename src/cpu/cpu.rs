@@ -1,8 +1,8 @@
-use cpu::reg;
-use cpu::Registers;
-use cpu::CPU;
+use crate::cpu::reg;
+use crate::cpu::Registers;
+use crate::cpu::CPU;
 
-use mem::Memory;
+use crate::mem::Memory;
 
 impl CPU {
   pub fn new() -> CPU {
@@ -81,8 +81,7 @@ impl CPU {
     }
     macro_rules! ld_nn_n {
       ($reg:ident) => {{
-        let imm = bump!();
-        self.regs.$reg = imm;
+        self.regs.$reg = bump!();
         2
       }};
     }
@@ -114,8 +113,7 @@ impl CPU {
 
     macro_rules! push {
       ($r:ident) => {{
-        let r = self.regs.$r();
-        self.push(mem, r);
+        self.push(mem, self.regs.$r());
         4
       }};
     }

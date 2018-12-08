@@ -7,17 +7,15 @@ mod timer;
 pub use self::key::Key;
 
 use self::key::KeyData;
-use gpu;
+use crate::gpu;
 
 use self::mbc::{MBC0, MBC1, MBC3, MBC};
 
-use std::error::Error;
-use std::fmt;
-use std::fs::File;
-use std::io::stdout;
-use std::io::Read;
-use std::io::Write;
-use std::path::PathBuf;
+use std::{error::Error,
+          fmt,
+          fs::File,
+          io::{stdout, Read, Write},
+          path::PathBuf};
 
 const WRAM_SIZE: usize = 0x2000;
 const ZRAM_SIZE: usize = 0xff;

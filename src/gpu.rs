@@ -405,12 +405,12 @@ impl GPU {
     if self.line < self.winy as usize {
       return;
     }
-    let winy = self.line - self.winy as usize;
+    let winy = self.line.wrapping_sub(self.winy as usize);
 
     if self.winx >= WIDTH as u8 + 7 {
       return;
     }
-    let winx = self.winx - 8;
+    let winx = self.winx.wrapping_sub(8);
 
     // Tile coordinate top left corner of the background.
     let row = (self.line - self.winy as usize) % 8;

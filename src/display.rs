@@ -1,8 +1,7 @@
-extern crate glium;
-use self::glium::glutin;
-use self::glium::Surface;
+use glium::glutin;
+use glium::Surface;
 
-use gpu;
+use crate::gpu;
 
 const WIDTH: u32 = gpu::WIDTH as u32;
 const HEIGHT: u32 = gpu::HEIGHT as u32;
@@ -19,8 +18,11 @@ impl Display {
   pub fn new() -> Display {
     let events_loop = glutin::EventsLoop::new();
     let window = glutin::WindowBuilder::new()
-      .with_dimensions(WIDTH * WINDOW_SCALE, HEIGHT * WINDOW_SCALE)
-      .with_title("GB Rust");
+      .with_title("GB Rust")
+      .with_dimensions(glutin::dpi::LogicalSize::new(
+        (WIDTH * WINDOW_SCALE) as f64,
+        (HEIGHT * WINDOW_SCALE) as f64,
+      ));
     let context = glutin::ContextBuilder::new();
 
     let display = glium::Display::new(window, context, &events_loop).unwrap();

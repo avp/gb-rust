@@ -1,10 +1,6 @@
 #![allow(dead_code)]
 
-extern crate clap;
 use clap::{App, Arg};
-
-extern crate glium;
-use glium::glutin;
 
 #[macro_use]
 extern crate log;
@@ -39,7 +35,7 @@ fn main() {
   }
 }
 
-fn main_result() -> Result<(), Box<Error>> {
+fn main_result() -> Result<(), Box<dyn Error>> {
   env_logger::init()?;
 
   let args = get_args()?;

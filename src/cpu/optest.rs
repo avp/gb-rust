@@ -1,5 +1,5 @@
-use cpu::CPU;
-use mem::Memory;
+use crate::cpu::CPU;
+use crate::mem::Memory;
 
 use std::path::PathBuf;
 

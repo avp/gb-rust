@@ -1,9 +1,10 @@
-use cpu::CPU;
-use display::Display;
+use crate::cpu::CPU;
+use crate::display::Display;
+use crate::mem::Key;
+use crate::mem::LoadError;
+use crate::mem::Memory;
+
 use glium::glutin;
-use mem::Key;
-use mem::LoadError;
-use mem::Memory;
 
 use std::error::Error;
 use std::fmt;
@@ -101,7 +102,7 @@ impl GameBoy {
             .events_loop
             .poll_events(|event| match event {
               glutin::Event::WindowEvent { event, .. } => match event {
-                glutin::WindowEvent::Closed => {
+                glutin::WindowEvent::CloseRequested => {
                   running = false;
                 }
                 glutin::WindowEvent::KeyboardInput { input, .. } => {

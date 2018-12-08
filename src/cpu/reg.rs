@@ -1,4 +1,4 @@
-use cpu::Registers;
+use crate::cpu::Registers;
 
 pub const Z: u8 = 0x80;
 pub const N: u8 = 0x40;
