@@ -4,10 +4,6 @@ os:
 rust:
   - stable
 cache: cargo
-before_script:
-  - export PATH="$PATH:$HOME/.cargo/bin"
-  - rustup install nightly
-  - cargo +nightly install --force rustfmt-nightly
 script:
   - cargo build
   - cargo test
