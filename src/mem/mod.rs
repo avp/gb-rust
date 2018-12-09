@@ -138,7 +138,7 @@ fn ram_size(v: u8) -> Result<usize, LoadError> {
   }
 }
 
-const SAV_EXTENSION: &'static str = "sav";
+const SAV_EXTENSION: &str = "sav";
 
 fn read_save(filename: &PathBuf) -> Option<Vec<u8>> {
   let savepath = filename.with_extension(SAV_EXTENSION);
