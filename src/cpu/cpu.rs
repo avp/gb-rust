@@ -963,7 +963,6 @@ impl CPU {
         2
       }
       0xff => rst!(0x38),
-      _ => panic!("Invalid opcode"),
     }
   }
 
@@ -1361,8 +1360,6 @@ impl CPU {
       0xfd => set!(self.regs.l, 7, 2),
       0xfe => do_hl!(hl, set!(hl, 7, 1), 4),
       0xff => set!(self.regs.a, 7, 2),
-
-      _ => panic!("Inexhaustive match"),
     }
   }
 
