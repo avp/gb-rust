@@ -134,8 +134,8 @@ impl Square {
     }
     // eprintln!("duty=0b{:08b}", self.duty);
 
-    eprintln!("volume={}", self.env_volume);
-    eprintln!("env_sweep={}", self.env_sweep);
+    // eprintln!("volume={}", self.env_volume);
+    // eprintln!("env_sweep={}", self.env_sweep);
     let volume: i8 = 100;
 
     let result = if self.duty & 0x80 != 0 {

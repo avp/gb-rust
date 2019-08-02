@@ -62,10 +62,10 @@ impl APU {
     let (s1, s2) = (self.channel1.next(), self.channel2.next());
     let ss = self.sound_select;
 
-    let c1 =
-      if ss & 0x01 != 0 { s1 } else { 0 } + if ss & 0x02 != 0 { s2 } else { 0 };
-    let c2 =
-      if ss & 0x10 != 0 { s1 } else { 0 } + if ss & 0x20 != 0 { s2 } else { 0 };
+    let c1 = if ss & 0x01 != 0 { s1 } else { 0 }
+      .wrapping_add(if ss & 0x02 != 0 { s2 } else { 0 });
+    let c2 = if ss & 0x10 != 0 { s1 } else { 0 }
+      .wrapping_add(if ss & 0x20 != 0 { s2 } else { 0 });
 
     self.buf.push((c1, c2));
   }
