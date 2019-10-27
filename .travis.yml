@@ -3,7 +3,6 @@ os:
   - linux
 rust:
   - stable
-cache: cargo
 script:
   - cargo build
   - cargo test
