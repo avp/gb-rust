@@ -1,4 +1,4 @@
-#![cfg_attr(feature = "cargo-clippy", allow(match_same_arms))]
+#![cfg_attr(feature = "cargo-clippy", allow(clippy::match_same_arms))]
 
 mod key;
 mod mbc;
@@ -16,6 +16,7 @@ use std::{
   fmt,
   fs::File,
   io::{stdout, Read, Write},
+  path::Path,
   path::PathBuf,
 };
 
@@ -74,10 +75,10 @@ impl fmt::Display for CartridgeType {
 
 impl CartridgeType {
   fn has_battery(&self) -> bool {
-    match *self {
-      CartridgeType::MBC1BatteryRAM | CartridgeType::MBC3BatteryRAM => true,
-      _ => false,
-    }
+    matches!(
+      *self,
+      CartridgeType::MBC1BatteryRAM | CartridgeType::MBC3BatteryRAM
+    )
   }
 }
 
@@ -142,7 +143,7 @@ fn ram_size(v: u8) -> Result<usize, LoadError> {
 
 const SAV_EXTENSION: &str = "sav";
 
-fn read_save(filename: &PathBuf) -> Option<Vec<u8>> {
+fn read_save(filename: &Path) -> Option<Vec<u8>> {
   let savepath = filename.with_extension(SAV_EXTENSION);
   println!("Looking for save: {}", savepath.to_str().unwrap());
   if savepath.is_file() {
@@ -218,8 +219,8 @@ impl Memory {
       sb: 0,
       sc: 0,
 
-      mbc: mbc,
-      cartridge_type: cartridge_type,
+      mbc,
+      cartridge_type,
 
       interrupt_enable: 0,
       interrupt_flags: 0,
@@ -403,9 +404,8 @@ impl Memory {
                 return;
               }
 
-              match (addr >> 4) & 0xf {
-                0x4..=0x7 => self.gpu.wb(addr, value),
-                _ => (),
+              if matches!((addr >> 4) & 0xf, 0x4..=0x7) {
+                self.gpu.wb(addr, value);
               }
             } else {
               match addr & 0x3f {

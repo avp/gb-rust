@@ -20,7 +20,7 @@ enum Mode {
 impl MBC1 {
   pub fn new(rom: Vec<u8>, ram_size: usize) -> Self {
     Self {
-      rom: rom,
+      rom,
       ram: vec![0; ram_size],
 
       rom_bank: 1,
@@ -32,8 +32,8 @@ impl MBC1 {
 
   pub fn from_save(rom: Vec<u8>, ram: Vec<u8>) -> Self {
     Self {
-      rom: rom,
-      ram: ram,
+      rom,
+      ram,
 
       rom_bank: 1,
       ram_bank: 0,
@@ -65,10 +65,11 @@ impl MBC for MBC1 {
     match addr >> 12 {
       0x0..=0x1 => self.ram_on = (value & 0x0f) == 0x0a,
       0x2..=0x3 => {
-        self.rom_bank = (self.rom_bank & 0x60) + match value & 0x1f {
-          0 => 1,
-          v => v,
-        }
+        self.rom_bank = (self.rom_bank & 0x60)
+          + match value & 0x1f {
+            0 => 1,
+            v => v,
+          }
       }
       0x4..=0x5 => match self.mode {
         Mode::RAM => self.ram_bank = value & 0x03,

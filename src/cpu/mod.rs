@@ -1,4 +1,4 @@
-mod cpu;
+mod exec;
 mod reg;
 
 pub struct CPU {

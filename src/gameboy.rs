@@ -51,9 +51,10 @@ enum KeyEvent {
 
 impl fmt::Display for RunError {
   fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-    Ok(match *self {
+    match *self {
       RunError::SyncError => write!(f, "ROM got desynced")?,
-    })
+    }
+    Ok(())
   }
 }
 
@@ -66,7 +67,7 @@ impl Error for RunError {
 impl GameBoy {
   pub fn new(rom: Vec<u8>, filename: PathBuf) -> Result<GameBoy, LoadError> {
     let title =
-      String::from_utf8(rom[0x134..0x144].to_vec()).unwrap_or(String::new());
+      String::from_utf8(rom[0x134..0x144].to_vec()).unwrap_or_default();
     Ok(GameBoy {
       title,
       cpu: CPU::new(),
@@ -100,19 +101,18 @@ impl GameBoy {
 
         if ints & 0b00001 != 0 {
           display.redraw(self.mem.frame());
-          display
-            .display
-            .get_keys_pressed(minifb::KeyRepeat::No)
-            .map(|keys| {
-              for key in &keys {
-                self.handle_key(*key, KeyEvent::Pressed);
-              }
-            });
-          display.display.get_keys_released().map(|keys| {
+          if let Some(keys) =
+            display.display.get_keys_pressed(minifb::KeyRepeat::No)
+          {
+            for key in &keys {
+              self.handle_key(*key, KeyEvent::Pressed);
+            }
+          }
+          if let Some(keys) = display.display.get_keys_released() {
             for key in &keys {
               self.handle_key(*key, KeyEvent::Released);
             }
-          });
+          }
         }
       }
     }
@@ -131,15 +131,12 @@ impl GameBoy {
     }
 
     if let KeyEvent::Pressed = event {
-      match key {
-        minifb::Key::S => {
-          self.speed = match self.speed {
-            Speed::Normal => Speed::Double,
-            Speed::Double => Speed::Normal,
-          };
-          println!("Speed set to: {}", self.speed.factor());
-        }
-        _ => (),
+      if let minifb::Key::S = key {
+        self.speed = match self.speed {
+          Speed::Normal => Speed::Double,
+          Speed::Double => Speed::Normal,
+        };
+        println!("Speed set to: {}", self.speed.factor());
       }
     }
   }
@@ -149,7 +146,7 @@ impl GameBoy {
 
     thread::spawn(move || loop {
       thread::sleep(time::Duration::from_millis(ms as u64));
-      if let Err(_) = tx.send(()) {
+      if tx.send(()).is_err() {
         break;
       }
     });

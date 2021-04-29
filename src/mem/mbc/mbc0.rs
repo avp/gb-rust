@@ -9,7 +9,7 @@ pub struct MBC0 {
 impl MBC0 {
   pub fn new(rom: Vec<u8>, ram_size: usize) -> Self {
     Self {
-      rom: rom,
+      rom,
       ram: vec![0; ram_size],
     }
   }

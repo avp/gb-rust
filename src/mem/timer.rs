@@ -51,8 +51,7 @@ impl Timer {
       }
     }
 
-    let result = self.check_step();
-    result
+    self.check_step()
   }
 
   /// Return true if an interrupt was triggered.

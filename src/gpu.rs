@@ -96,8 +96,8 @@ pub struct GPU {
 impl GPU {
   pub fn new() -> GPU {
     let mut objects = [Object::new(); NUM_OBJECTS];
-    for i in 0..NUM_OBJECTS {
-      objects[i].num = i as u32;
+    for (i, obj) in objects.iter_mut().enumerate() {
+      obj.num = i as u32;
     }
 
     GPU {
@@ -118,12 +118,12 @@ impl GPU {
       switchlcd: false,
       scx: 0,
       scy: 0,
-      bg_palette: COLORS.clone(),
+      bg_palette: COLORS,
 
       switchobj: false,
       objsize: false,
-      obj0_palette: COLORS.clone(),
-      obj1_palette: COLORS.clone(),
+      obj0_palette: COLORS,
+      obj1_palette: COLORS,
 
       switchwin: false,
       winmap: false,
@@ -313,12 +313,12 @@ impl GPU {
           0xff49 => &mut self.obj1_palette,
           _ => panic!(),
         };
-        for i in 0..4 {
+        for (i, pal_item) in pal.iter_mut().enumerate() {
           match (value >> (i * 2)) & 3 {
-            0 => pal[i] = COLORS[0],
-            1 => pal[i] = COLORS[1],
-            2 => pal[i] = COLORS[2],
-            3 => pal[i] = COLORS[3],
+            0 => *pal_item = COLORS[0],
+            1 => *pal_item = COLORS[1],
+            2 => *pal_item = COLORS[2],
+            3 => *pal_item = COLORS[3],
             _ => unimplemented!(),
           }
         }
@@ -368,11 +368,11 @@ impl GPU {
     };
 
     let line = self.line;
-    for i in 0..WIDTH {
+    for (i, row_cell) in scanrow.iter_mut().enumerate() {
       let color = self.tileset[tile as usize][row][col];
 
       self.render[line * WIDTH + i] = self.bg_palette[color as usize];
-      scanrow[i] = color;
+      *row_cell = color;
 
       col += 1;
       if col == 8 {
@@ -420,11 +420,11 @@ impl GPU {
     };
 
     let line = self.line;
-    for i in 0..WIDTH {
+    for (i, row_cell) in scanrow.iter_mut().enumerate() {
       let color = self.tileset[tile as usize][row][col];
 
       self.render[line * WIDTH + i] = self.bg_palette[color as usize];
-      scanrow[i] = color;
+      *row_cell = color;
 
       col += 1;
       if col == 8 {
@@ -462,6 +462,7 @@ impl GPU {
               (object.tile + 1, object.y)
             }
           } else {
+            debug_assert!(!object.yflip);
             if line - object.y >= 8 {
               (object.tile + 1, object.y + 8)
             } else {
@@ -483,13 +484,13 @@ impl GPU {
           if 0 <= screen_idx && screen_idx < WIDTH as i32 {
             let tilerow_idx = if object.xflip { 7 - x } else { x } as usize;
             let pal_idx = tilerow[tilerow_idx] as usize;
-            if pal_idx != 0 {
-              if object.priority || scanrow[screen_idx as usize] == 0 {
-                let color = pal[pal_idx];
-                let row = self.line;
-                let col = screen_idx as usize;
-                self.set_color(row, col, color);
-              }
+            if pal_idx != 0
+              && (object.priority || scanrow[screen_idx as usize] == 0)
+            {
+              let color = pal[pal_idx];
+              let row = self.line;
+              let col = screen_idx as usize;
+              self.set_color(row, col, color);
             }
           }
         }

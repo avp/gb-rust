@@ -10,7 +10,7 @@ use std::error::Error;
 use std::fs::File;
 use std::io;
 use std::io::Read;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process;
 
 mod cpu;
@@ -74,12 +74,12 @@ fn get_args() -> Result<Args, &'static str> {
   }
 
   Ok(Args {
-    rom: rom,
+    rom,
     test: matches.is_present("test"),
   })
 }
 
-fn read_file(filename: &PathBuf) -> Result<Vec<u8>, io::Error> {
+fn read_file(filename: &Path) -> Result<Vec<u8>, io::Error> {
   let mut file = File::open(filename)?;
   let mut result: Vec<u8> = vec![];
   file.read_to_end(&mut result)?;

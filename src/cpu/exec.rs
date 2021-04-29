@@ -1,3 +1,5 @@
+#![cfg_attr(feature = "cargo-clippy", allow(clippy::self_assignment))]
+
 use crate::cpu::reg;
 use crate::cpu::Registers;
 use crate::cpu::CPU;
@@ -1020,13 +1022,13 @@ impl CPU {
     }
     macro_rules! set {
       ($reg:expr, $b:expr, $time:expr) => {{
-        $reg = (1 << $b) | $reg;
+        $reg |= (1 << $b);
         $time as u32
       }};
     }
     macro_rules! reset {
       ($reg:expr, $b:expr, $time:expr) => {{
-        $reg = !(1 << $b) & $reg;
+        $reg &= !(1 << $b);
         $time as u32
       }};
     }
