@@ -113,18 +113,6 @@ impl GameBoy {
               self.handle_key(*key, KeyEvent::Released);
             }
           });
-          // match &event {
-          //   glutin::event::Event::WindowEvent { event, .. } => match event {
-          //     glutin::event::WindowEvent::CloseRequested => {
-          //       running = false;
-          //     }
-          //     glutin::event::WindowEvent::KeyboardInput { input, .. } => {
-          //       self.handle_key(*input);
-          //     }
-          //     _ => (),
-          //   },
-          //   _ => (),
-          // };
         }
       }
     }

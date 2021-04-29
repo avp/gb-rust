@@ -13,7 +13,7 @@ pub const OAM_SIZE: usize = 0xa0;
 const NUM_TILES: usize = 384;
 const NUM_OBJECTS: usize = 40;
 
-pub type Frame = [u8; 4 * WIDTH * HEIGHT];
+pub type Frame = [u32; WIDTH * HEIGHT];
 
 const COLORS: [u8; 4] = [255, 150, 50, 0];
 
@@ -101,7 +101,7 @@ impl GPU {
     }
 
     GPU {
-      frame: Box::new([0; 4 * WIDTH * HEIGHT]),
+      frame: Box::new([0; WIDTH * HEIGHT]),
       render: Box::new([0; WIDTH * HEIGHT]),
 
       vram: vec![0; VRAM_SIZE],
@@ -499,13 +499,9 @@ impl GPU {
 
   fn render_frame(&mut self) {
     for i in 0..(WIDTH * HEIGHT) {
-      let color = self.render[i];
-      let j = i * 4;
-      self.frame[j] = color;
-      self.frame[j + 1] = color;
-      self.frame[j + 2] = color;
-      // Full alpha value.
-      self.frame[j + 3] = 255;
+      self.frame[i] = (self.render[i] as u32) << 16
+        | (self.render[i] as u32) << 8
+        | self.render[i] as u32;
     }
   }
 

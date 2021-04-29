@@ -26,16 +26,9 @@ impl Display {
   }
 
   pub fn redraw(&mut self, frame: &gpu::Frame) {
-    let mut buf = [0u32; WIDTH * HEIGHT];
-    for i in 0..buf.len() {
-      buf[i] = ((frame[i * 4] as u32) << 16)
-        | ((frame[i * 4 + 1] as u32) << 8)
-        | ((frame[i * 4 + 2] as u32) << 0);
-    }
-
     self
       .display
-      .update_with_buffer(&buf, WIDTH, HEIGHT)
+      .update_with_buffer(frame, WIDTH, HEIGHT)
       .unwrap();
   }
 }
