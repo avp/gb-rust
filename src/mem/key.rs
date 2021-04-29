@@ -1,5 +1,3 @@
-use glium::glutin::VirtualKeyCode;
-
 #[derive(Debug)]
 pub enum Key {
   A,
@@ -13,16 +11,16 @@ pub enum Key {
 }
 
 impl Key {
-  pub fn from_code(code: VirtualKeyCode) -> Option<Key> {
+  pub fn from_code(code: minifb::Key) -> Option<Key> {
     match code {
-      VirtualKeyCode::Z => Some(Key::A),
-      VirtualKeyCode::X => Some(Key::B),
-      VirtualKeyCode::Return => Some(Key::Start),
-      VirtualKeyCode::Space => Some(Key::Select),
-      VirtualKeyCode::Left => Some(Key::Left),
-      VirtualKeyCode::Right => Some(Key::Right),
-      VirtualKeyCode::Up => Some(Key::Up),
-      VirtualKeyCode::Down => Some(Key::Down),
+      minifb::Key::Z => Some(Key::A),
+      minifb::Key::X => Some(Key::B),
+      minifb::Key::Enter => Some(Key::Start),
+      minifb::Key::Space => Some(Key::Select),
+      minifb::Key::Left => Some(Key::Left),
+      minifb::Key::Right => Some(Key::Right),
+      minifb::Key::Up => Some(Key::Up),
+      minifb::Key::Down => Some(Key::Down),
       _ => None,
     }
   }

@@ -4,8 +4,6 @@ use crate::mem::Key;
 use crate::mem::LoadError;
 use crate::mem::Memory;
 
-use glium::glutin;
-
 use std::error::Error;
 use std::fmt;
 use std::ops::Drop;
@@ -45,6 +43,12 @@ pub enum RunError {
   SyncError,
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+enum KeyEvent {
+  Pressed,
+  Released,
+}
+
 impl fmt::Display for RunError {
   fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
     Ok(match *self {
@@ -64,19 +68,17 @@ impl GameBoy {
     let title =
       String::from_utf8(rom[0x134..0x144].to_vec()).unwrap_or(String::new());
     Ok(GameBoy {
-      title: title,
+      title,
       cpu: CPU::new(),
       mem: Memory::new(rom, filename)?,
       speed: Speed::Normal,
     })
   }
 
-  pub fn run(&mut self, display: &mut Display, limit_speed: bool) {
-    let mut running = true;
-
+  pub fn run(mut self, mut display: Display, limit_speed: bool) {
     let ticker = self.wait_timer(MS_PER_WAIT);
 
-    while running {
+    while display.display.is_open() {
       let clock_speed: f64 = 4.194304e+6 * self.speed.factor();
       let ticks_per_wait: u32 =
         (clock_speed / 1000.0 * MS_PER_WAIT as f64) as u32;
@@ -99,48 +101,57 @@ impl GameBoy {
         if ints & 0b00001 != 0 {
           display.redraw(self.mem.frame());
           display
-            .events_loop
-            .poll_events(|event| match event {
-              glutin::Event::WindowEvent { event, .. } => match event {
-                glutin::WindowEvent::CloseRequested => {
-                  running = false;
-                }
-                glutin::WindowEvent::KeyboardInput { input, .. } => {
-                  self.handle_key(input);
-                }
-                _ => (),
-              },
-              _ => (),
+            .display
+            .get_keys_pressed(minifb::KeyRepeat::No)
+            .map(|keys| {
+              for key in &keys {
+                self.handle_key(*key, KeyEvent::Pressed);
+              }
             });
+          display.display.get_keys_released().map(|keys| {
+            for key in &keys {
+              self.handle_key(*key, KeyEvent::Released);
+            }
+          });
+          // match &event {
+          //   glutin::event::Event::WindowEvent { event, .. } => match event {
+          //     glutin::event::WindowEvent::CloseRequested => {
+          //       running = false;
+          //     }
+          //     glutin::event::WindowEvent::KeyboardInput { input, .. } => {
+          //       self.handle_key(*input);
+          //     }
+          //     _ => (),
+          //   },
+          //   _ => (),
+          // };
         }
       }
     }
   }
 
-  fn handle_key(&mut self, key_input: glutin::KeyboardInput) {
-    if let Some(keycode) = key_input.virtual_keycode {
-      if let Some(key) = Key::from_code(keycode) {
-        match key_input.state {
-          glutin::ElementState::Pressed => {
-            self.mem.key_down(key);
-          }
-          glutin::ElementState::Released => {
-            self.mem.key_up(key);
-          }
+  fn handle_key(&mut self, key: minifb::Key, event: KeyEvent) {
+    if let Some(key) = Key::from_code(key) {
+      match event {
+        KeyEvent::Pressed => {
+          self.mem.key_down(key);
+        }
+        KeyEvent::Released => {
+          self.mem.key_up(key);
         }
       }
+    }
 
-      if let glutin::ElementState::Pressed = key_input.state {
-        match keycode {
-          glutin::VirtualKeyCode::S => {
-            self.speed = match self.speed {
-              Speed::Normal => Speed::Double,
-              Speed::Double => Speed::Normal,
-            };
-            println!("Speed set to: {}", self.speed.factor());
-          }
-          _ => (),
+    if let KeyEvent::Pressed = event {
+      match key {
+        minifb::Key::S => {
+          self.speed = match self.speed {
+            Speed::Normal => Speed::Double,
+            Speed::Double => Speed::Normal,
+          };
+          println!("Speed set to: {}", self.speed.factor());
         }
+        _ => (),
       }
     }
   }
