@@ -67,6 +67,35 @@ impl Registers {
     //! Carry flag
     self.f & C != 0
   }
+
+  pub fn set_z(&mut self, z: bool) {
+    if z {
+      self.f |= Z;
+    } else {
+      self.f &= !Z;
+    }
+  }
+  pub fn set_h(&mut self, h: bool) {
+    if h {
+      self.f |= H;
+    } else {
+      self.f &= !H;
+    }
+  }
+  pub fn set_n(&mut self, n: bool) {
+    if n {
+      self.f |= N;
+    } else {
+      self.f &= !N;
+    }
+  }
+  pub fn set_c(&mut self, c: bool) {
+    if c {
+      self.f |= C;
+    } else {
+      self.f &= !C;
+    }
+  }
 }
 
 #[cfg(test)]

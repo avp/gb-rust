@@ -9,13 +9,15 @@ pub use self::key::Key;
 use self::key::KeyData;
 use crate::gpu;
 
-use self::mbc::{MBC0, MBC1, MBC3, MBC};
+use self::mbc::{MBC, MBC0, MBC1, MBC3};
 
-use std::{error::Error,
-          fmt,
-          fs::File,
-          io::{stdout, Read, Write},
-          path::PathBuf};
+use std::{
+  error::Error,
+  fmt,
+  fs::File,
+  io::{stdout, Read, Write},
+  path::PathBuf,
+};
 
 const WRAM_SIZE: usize = 0x2000;
 const ZRAM_SIZE: usize = 0xff;
@@ -142,27 +144,18 @@ const SAV_EXTENSION: &str = "sav";
 
 fn read_save(filename: &PathBuf) -> Option<Vec<u8>> {
   let savepath = filename.with_extension(SAV_EXTENSION);
-  println!(
-    "Looking for save: {}",
-    savepath.to_str().unwrap()
-  );
+  println!("Looking for save: {}", savepath.to_str().unwrap());
   if savepath.is_file() {
     // Load from save file.
     if let Ok(mut f) = File::open(&savepath) {
-      println!(
-        "Reading save file: {}",
-        savepath.to_str().unwrap()
-      );
+      println!("Reading save file: {}", savepath.to_str().unwrap());
       let mut buf = vec![];
       match f.read_to_end(&mut buf) {
         Ok(_) => {
           return Some(buf);
         }
         Err(_) => {
-          eprintln!(
-            "Unable to read save file: {}",
-            savepath.to_str().unwrap()
-          );
+          eprintln!("Unable to read save file: {}", savepath.to_str().unwrap());
         }
       };
     }
@@ -297,19 +290,19 @@ impl Memory {
   /// Read a byte at address `addr`.
   pub fn rb(&self, addr: u16) -> u8 {
     match addr >> 12 {
-      0x0...0x7 => self.mbc.rb(addr),
+      0x0..=0x7 => self.mbc.rb(addr),
       // GPU VRAM
-      0x8...0x9 => self.gpu.vram[(addr & 0x1fff) as usize],
+      0x8..=0x9 => self.gpu.vram[(addr & 0x1fff) as usize],
       // ERAM
-      0xa...0xb => self.mbc.rb(addr),
+      0xa..=0xb => self.mbc.rb(addr),
       // WRAM
-      0xc...0xd => self.wram[(addr & 0x1fff) as usize],
+      0xc..=0xd => self.wram[(addr & 0x1fff) as usize],
       // WRAM Shadow
       0xe => self.wram[(addr & 0x1fff) as usize],
       0xf => {
         match (addr >> 8) & 0xf {
           // WRAM Shadow
-          0x0...0xd => self.wram[(addr & 0x1fff) as usize],
+          0x0..=0xd => self.wram[(addr & 0x1fff) as usize],
           // GPU OAM
           0xe => {
             let idx = (addr & 0xff) as usize;
@@ -328,7 +321,7 @@ impl Memory {
             } else if addr >= 0xff40 {
               // I/O Control
               match (addr >> 4) & 0xf {
-                0x4...0x7 => self.gpu.rb(addr),
+                0x4..=0x7 => self.gpu.rb(addr),
                 _ => 0,
               }
             } else {
@@ -366,25 +359,25 @@ impl Memory {
       stdout().flush().unwrap();
     }
     match addr >> 12 {
-      0x0...0x7 => self.mbc.wb(addr, value),
+      0x0..=0x7 => self.mbc.wb(addr, value),
       // GPU VRAM
-      0x8...0x9 => {
+      0x8..=0x9 => {
         debug!("VRAM: 0x{:04x} <- 0x{:02x}", addr, value);
         self.gpu.vram[(addr & 0x1fff) as usize] = value;
         self.gpu.update_tile(addr);
       }
       // ERAM
-      0xa...0xb => {
+      0xa..=0xb => {
         self.mbc.wb(addr, value);
       }
       // WRAM
-      0xc...0xd => self.wram[(addr & 0x1fff) as usize] = value,
+      0xc..=0xd => self.wram[(addr & 0x1fff) as usize] = value,
       // WRAM Shadow
       0xe => self.wram[(addr & 0x1fff) as usize] = value,
       0xf => {
         match (addr >> 8) & 0xf {
           // WRAM Shadow
-          0x0...0xd => self.wram[(addr & 0x1fff) as usize] = value,
+          0x0..=0xd => self.wram[(addr & 0x1fff) as usize] = value,
           // GPU OAM
           0xe => {
             let idx = (addr & 0xff) as usize;
@@ -411,7 +404,7 @@ impl Memory {
               }
 
               match (addr >> 4) & 0xf {
-                0x4...0x7 => self.gpu.wb(addr, value),
+                0x4..=0x7 => self.gpu.wb(addr, value),
                 _ => (),
               }
             } else {
@@ -466,10 +459,7 @@ impl Memory {
       // Load ERAM from save file.
       match File::create(&savepath) {
         Ok(mut f) => {
-          println!(
-            "Writing save file: {}",
-            savepath.to_str().unwrap()
-          );
+          println!("Writing save file: {}", savepath.to_str().unwrap());
           match f.write(&self.mbc.to_save()) {
             Ok(_) => (),
             Err(e) => {
