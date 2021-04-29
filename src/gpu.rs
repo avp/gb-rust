@@ -306,7 +306,7 @@ impl GPU {
       0xff43 => self.scx = value,
       0xff45 => self.lyc = value,
       0xff46 => panic!("0xff46 write to GPU is invalid"),
-      0xff47...0xff49 => {
+      0xff47..=0xff49 => {
         let pal = match addr {
           0xff47 => &mut self.bg_palette,
           0xff48 => &mut self.obj0_palette,

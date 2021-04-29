@@ -30,7 +30,7 @@ pub struct Memory {
   sb: u8,
   sc: u8,
 
-  mbc: Box<MBC>,
+  mbc: Box<dyn MBC>,
   cartridge_type: CartridgeType,
 
   pub interrupt_enable: u8,
@@ -89,7 +89,7 @@ pub enum LoadError {
 
 impl fmt::Display for LoadError {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-    write!(f, "{}: ", self.description())?;
+    write!(f, "{}: ", &self)?;
     match *self {
       LoadError::InvalidROM => write!(f, "Invalid ROM")?,
       LoadError::InvalidCartridgeType(t) => {
@@ -186,7 +186,7 @@ impl Memory {
     };
     info!("RAM size: 0x{:04x} bytes", ram_size);
 
-    let mbc: Box<MBC> = match cartridge_type {
+    let mbc: Box<dyn MBC> = match cartridge_type {
       CartridgeType::MBC0 => Box::new(MBC0::new(rom, ram_size)),
       CartridgeType::MBC1 | CartridgeType::MBC1RAM => {
         Box::new(MBC1::new(rom, ram_size))

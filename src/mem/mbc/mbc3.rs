@@ -61,7 +61,7 @@ impl MBC for MBC3 {
           v => v,
         }
       }
-      0x4...0x5 => {
+      0x4..=0x5 => {
         match value {
           0x0..=0x3 => self.ram_bank = value & 0x03,
           _ => {} // RTC
