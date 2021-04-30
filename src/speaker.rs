@@ -53,7 +53,6 @@ impl Speaker {
     // It may called at interrupt level on some machines so don't do anything
     // that could mess up the system like dynamic resource allocation or IO.
     let callback =
-<<<<<<< HEAD
       move |pa::OutputStreamCallbackArgs { buffer, frames, .. }| {
         let mut idx = 0;
         for _ in 0..frames {
@@ -62,24 +61,6 @@ impl Speaker {
           left_phase += 1;
           if left_phase >= TABLE_SIZE {
             left_phase -= TABLE_SIZE;
-=======
-      move |pa::OutputStreamCallbackArgs {
-              buffer, frames, ..
-            }| {
-        let mut queue = VecDeque::new();
-        loop {
-          match sound_recv.try_recv() {
-            Ok(b) => {
-              for (c1, c2) in b {
-                queue.push_back((normalize_sample(c1), normalize_sample(c2)));
-              }
-            }
-<<<<<<< HEAD
->>>>>>> [APU] Skeleton for playing music.
-=======
-            Err(mpsc::TryRecvError::Empty) => break,
-            Err(mpsc::TryRecvError::Disconnected) => unreachable!(),
->>>>>>> Debugging.
           }
         }
         // eprintln!("queuelen={}", queue.len());
@@ -106,18 +87,12 @@ impl Speaker {
       };
 
     let stream = pa.open_non_blocking_stream(settings, callback)?;
-    let speaker = Speaker {
-      stream: stream,
-      sound_send: sound_send,
-    };
+    let speaker = Speaker { stream, sound_send };
     Ok(speaker)
   }
 
   pub fn play(&mut self, buf: Vec<(i8, i8)>) {
-    self
-      .sound_send
-      .send(buf)
-      .expect("Sound receiver closed");
+    self.sound_send.send(buf).expect("Sound receiver closed");
   }
 
   pub fn start(&mut self) -> Result<(), pa::Error> {
